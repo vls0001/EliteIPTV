@@ -1,0 +1,622 @@
+<title>Tonight</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="description" content="Tonight turns 'who's on later?' into an actual session. Plan it, everyone taps in, the room opens itself.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&family=Instrument+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: one narrow editorial column, oversized wide type, thin rules, mono labels like a session clock. */
+:root {
+  --bg: #0B0C14;
+  --surface: #141625;
+  --line: #262940;
+  --fg: #EEEBF6;
+  --muted: #8F90A8;
+  --accent: #FFB547;
+  --accent-ink: #1B1200;
+  --live: #6FD8A4;
+  --maybe: #B9A6FF;
+  --display: "Archivo", "Arial Black", system-ui, sans-serif;
+  --body: "Instrument Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  --max: 1120px;
+  color-scheme: dark;
+}
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) {
+    --bg: #F4F3F8; --surface: #FFFFFF; --line: #DCDAE6; --fg: #15142A; --muted: #5E5D76;
+    --accent: #A85400; --accent-ink: #FFFFFF; --live: #19804F; --maybe: #6A4FD9; color-scheme: light;
+  }
+}
+:root[data-theme="light"] {
+  --bg: #F4F3F8; --surface: #FFFFFF; --line: #DCDAE6; --fg: #15142A; --muted: #5E5D76;
+  --accent: #A85400; --accent-ink: #FFFFFF; --live: #19804F; --maybe: #6A4FD9; color-scheme: light;
+}
+
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  background: var(--bg); color: var(--fg);
+  font-family: var(--body); font-size: 17px; line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--bg); }
+a { color: inherit; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 4px; }
+
+.wrap {
+  max-width: var(--max); margin: 0 auto;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+.label {
+  font-family: var(--mono); font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted);
+}
+h1, h2, h3 { font-family: var(--display); text-wrap: balance; margin: 0; }
+h2 { font-size: clamp(34px, 6vw, 64px); line-height: .98; font-weight: 850; font-stretch: 112%; letter-spacing: -.02em; }
+h3 { font-size: 22px; font-weight: 750; font-stretch: 100%; line-height: 1.15; }
+p { margin: 0; }
+.lede { font-size: clamp(18px, 2vw, 21px); color: var(--muted); max-width: 34em; }
+
+/* Nav */
+header.nav {
+  position: sticky; top: env(safe-area-inset-top, 0px); z-index: 9;
+  background: color-mix(in srgb, var(--bg) 88%, transparent);
+  backdrop-filter: blur(10px); border-bottom: 1px solid var(--line);
+}
+.nav .wrap { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding-block: 14px; }
+.mark { font-family: var(--display); font-weight: 900; font-stretch: 125%; font-size: 22px; text-decoration: none; letter-spacing: -.02em; display: flex; align-items: center; gap: 8px; }
+.mark i { width: 9px; height: 9px; border-radius: 50%; background: var(--accent); display: inline-block; box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 22%, transparent); }
+.nav nav { display: flex; gap: 26px; align-items: center; }
+.nav nav a.link { text-decoration: none; font-size: 15px; color: var(--muted); }
+.nav nav a.link:hover { color: var(--fg); }
+@media (max-width: 760px) { .nav nav a.link { display: none; } }
+
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  font: 600 15px/1 var(--body); padding: 13px 18px; border-radius: 999px;
+  border: 1px solid var(--line); background: transparent; color: var(--fg); cursor: pointer; text-decoration: none;
+  transition: transform .15s ease, background .15s ease;
+}
+.btn:hover { transform: translateY(-1px); }
+.btn.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+
+/* Hero */
+.hero { padding-block: clamp(48px, 9vw, 112px) clamp(40px, 6vw, 80px); }
+.hero .clockline { display: flex; flex-wrap: wrap; gap: 10px 22px; margin-bottom: 28px; }
+.hero .clockline span b { color: var(--fg); font-weight: 500; }
+.hero h1 {
+  font-size: clamp(48px, 10.5vw, 148px); line-height: .9; font-weight: 900; font-stretch: 125%; letter-spacing: -.035em;
+}
+.hero h1 em { font-style: normal; color: var(--accent); }
+.hero-grid { display: grid; grid-template-columns: 1.15fr .85fr; gap: clamp(28px, 5vw, 64px); align-items: end; margin-top: clamp(32px, 5vw, 56px); }
+.hero-grid > * { min-width: 0; }
+.hero .ctas { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 28px; }
+@media (max-width: 860px) { .hero-grid { grid-template-columns: 1fr; } }
+
+/* Session card */
+.session {
+  background: var(--surface); border: 1px solid var(--line); border-radius: 18px; padding: 22px;
+  display: grid; gap: 16px;
+}
+.session .top { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
+.session .when { font-family: var(--display); font-weight: 850; font-stretch: 110%; font-size: 30px; line-height: 1; }
+.session .count { font-family: var(--mono); font-size: 13px; color: var(--accent); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.session .what { color: var(--muted); font-size: 15px; }
+.people { display: grid; gap: 8px; }
+.person {
+  display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 12px;
+  border: 1px solid var(--line); background: transparent; color: var(--fg); font: 500 15px var(--body); text-align: left; width: 100%;
+}
+button.person { cursor: pointer; }
+button.person:hover { border-color: var(--muted); }
+.av { width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; font: 600 13px var(--body); color: var(--bg); flex: none; }
+.person .name { flex: 1; min-width: 0; }
+.pill { font-family: var(--mono); font-size: 11px; letter-spacing: .06em; text-transform: uppercase; padding: 4px 8px; border-radius: 999px; border: 1px solid currentColor; }
+.pill.in { color: var(--live); }
+.pill.maybe { color: var(--maybe); }
+.pill.out { color: var(--muted); }
+.session .foot { display: flex; align-items: center; gap: 10px; font-size: 14px; color: var(--muted); border-top: 1px dashed var(--line); padding-top: 14px; }
+.dot { width: 8px; height: 8px; border-radius: 50%; background: var(--live); flex: none; }
+@media (prefers-reduced-motion: no-preference) { .dot.pulse { animation: pulse 1.8s ease-in-out infinite; } }
+@keyframes pulse { 50% { box-shadow: 0 0 0 6px color-mix(in srgb, var(--live) 25%, transparent); } }
+
+/* Problem band */
+.band { border-block: 1px solid var(--line); }
+.band .wrap { padding-block: clamp(36px, 6vw, 64px); display: grid; grid-template-columns: repeat(3, 1fr); gap: 28px; }
+.stat b { display: block; font-family: var(--display); font-weight: 900; font-stretch: 120%; font-size: clamp(40px, 6vw, 72px); line-height: 1; letter-spacing: -.03em; font-variant-numeric: tabular-nums; }
+.stat span { color: var(--muted); font-size: 15px; display: block; margin-top: 8px; max-width: 22em; }
+@media (max-width: 700px) { .band .wrap { grid-template-columns: 1fr; } }
+
+section.block { padding-block: clamp(64px, 10vw, 128px); }
+.block-head { display: grid; gap: 18px; margin-bottom: clamp(36px, 5vw, 56px); }
+
+/* Steps */
+.steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0; border-top: 1px solid var(--line); }
+.step { padding: 26px 24px 8px 0; display: grid; gap: 12px; align-content: start; }
+.step + .step { padding-left: 24px; border-left: 1px solid var(--line); }
+.step .n { font-family: var(--mono); color: var(--accent); font-size: 13px; }
+.step p { color: var(--muted); font-size: 16px; }
+.step code { font-family: var(--mono); font-size: 14px; color: var(--fg); background: var(--surface); border: 1px solid var(--line); padding: 2px 6px; border-radius: 6px; }
+@media (max-width: 760px) {
+  .steps { grid-template-columns: 1fr; }
+  .step, .step + .step { padding: 22px 0; border-left: 0; border-bottom: 1px solid var(--line); }
+}
+
+/* Demo */
+.demo { display: grid; grid-template-columns: .9fr 1.1fr; gap: clamp(24px, 4vw, 48px); align-items: start; }
+.demo > * { min-width: 0; }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip {
+  font: 500 14px var(--mono); padding: 9px 14px; border-radius: 999px; border: 1px solid var(--line);
+  background: transparent; color: var(--fg); cursor: pointer; font-variant-numeric: tabular-nums;
+}
+.chip[aria-pressed="true"] { background: var(--fg); color: var(--bg); border-color: var(--fg); }
+.demo .controls { display: grid; gap: 22px; }
+.demo .controls > div { display: grid; gap: 10px; }
+.outcome { margin-top: 4px; padding: 18px; border-radius: 14px; border: 1px solid var(--line); background: var(--surface); font-size: 16px; }
+.outcome strong { color: var(--accent); font-weight: 600; }
+.sample { font-family: var(--mono); font-size: 11px; color: var(--muted); letter-spacing: .06em; text-transform: uppercase; }
+@media (max-width: 860px) { .demo { grid-template-columns: 1fr; } }
+
+/* Catch-up */
+.catch { display: grid; grid-template-columns: 1fr 1fr; gap: clamp(24px, 4vw, 56px); align-items: start; }
+.catch > * { min-width: 0; }
+.toggle { display: inline-flex; border: 1px solid var(--line); border-radius: 999px; padding: 4px; gap: 4px; }
+.toggle button { font: 500 14px var(--body); padding: 8px 14px; border-radius: 999px; border: 0; background: transparent; color: var(--muted); cursor: pointer; }
+.toggle button[aria-selected="true"] { background: var(--surface); color: var(--fg); box-shadow: 0 0 0 1px var(--line); }
+.feed { background: var(--surface); border: 1px solid var(--line); border-radius: 18px; padding: 20px; display: grid; gap: 14px; }
+.feed .hd { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.msgs { display: grid; gap: 10px; max-height: 300px; overflow: hidden; position: relative; mask-image: linear-gradient(to bottom, #000 70%, transparent); -webkit-mask-image: linear-gradient(to bottom, #000 70%, transparent); }
+.msg { font-size: 14px; line-height: 1.45; }
+.msg b { font-weight: 600; margin-right: 6px; }
+.msg span { color: var(--muted); }
+.summary { display: grid; gap: 12px; margin: 0; padding: 0; list-style: none; }
+.summary li { display: grid; grid-template-columns: 20px 1fr; gap: 10px; font-size: 15px; }
+.summary li::before { content: "→"; color: var(--accent); font-family: var(--mono); }
+.summary .src { color: var(--muted); font-family: var(--mono); font-size: 12px; display: block; margin-top: 2px; }
+
+/* Rooms */
+.rooms { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px; }
+.room { border: 1px solid var(--line); border-radius: 16px; padding: 18px; display: grid; gap: 12px; align-content: start; }
+.room .rh { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+.room .rh .label { color: var(--live); display: flex; align-items: center; gap: 6px; }
+.room .row { display: flex; align-items: center; gap: 10px; font-size: 14px; }
+.room .row .av { width: 24px; height: 24px; font-size: 11px; }
+.room .row span { color: var(--muted); }
+
+/* Discord */
+.bot { display: grid; grid-template-columns: 1fr 1fr; gap: clamp(24px, 4vw, 56px); align-items: center; }
+.bot > * { min-width: 0; }
+.term { background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 20px; font-family: var(--mono); font-size: 14px; line-height: 1.7; overflow-x: auto; }
+.term .c { color: var(--accent); }
+.term .m { color: var(--muted); }
+@media (max-width: 860px) { .catch, .bot { grid-template-columns: 1fr; } }
+
+/* Pricing */
+.plans { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+.plan { border: 1px solid var(--line); border-radius: 18px; padding: 24px; display: grid; gap: 16px; align-content: start; }
+.plan.featured { border-color: var(--accent); background: var(--surface); }
+.plan .price { font-family: var(--display); font-weight: 900; font-stretch: 115%; font-size: 48px; line-height: 1; letter-spacing: -.03em; font-variant-numeric: tabular-nums; }
+.plan .price small { font-family: var(--body); font-weight: 500; font-size: 15px; color: var(--muted); letter-spacing: 0; }
+.plan ul { margin: 0; padding: 0; list-style: none; display: grid; gap: 9px; font-size: 15px; }
+.plan li { display: grid; grid-template-columns: 18px 1fr; gap: 8px; }
+.plan li::before { content: "+"; font-family: var(--mono); color: var(--accent); }
+.plan .who { color: var(--muted); font-size: 15px; }
+@media (max-width: 860px) { .plans { grid-template-columns: 1fr; } }
+
+/* FAQ */
+.faq { border-top: 1px solid var(--line); }
+.faq details { border-bottom: 1px solid var(--line); padding-block: 20px; }
+.faq summary { cursor: pointer; list-style: none; display: flex; justify-content: space-between; gap: 16px; font-weight: 600; font-size: 18px; }
+.faq summary::-webkit-details-marker { display: none; }
+.faq summary::after { content: "+"; font-family: var(--mono); color: var(--accent); }
+.faq details[open] summary::after { content: "–"; }
+.faq details p { color: var(--muted); margin-top: 12px; max-width: 40em; }
+
+/* Waitlist */
+.join { border-top: 1px solid var(--line); }
+.join h2 { font-size: clamp(44px, 9vw, 120px); font-stretch: 125%; font-weight: 900; line-height: .9; }
+.form { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 32px; max-width: 560px; }
+.form input {
+  flex: 1 1 240px; min-width: 0; font: 400 16px var(--body); color: var(--fg); background: var(--surface);
+  border: 1px solid var(--line); border-radius: 999px; padding: 13px 18px;
+}
+.form input::placeholder { color: var(--muted); }
+.form-note { margin-top: 14px; font-size: 14px; color: var(--muted); min-height: 1.4em; }
+.form-note.ok { color: var(--live); }
+
+footer { border-top: 1px solid var(--line); }
+footer .wrap { padding-block: 28px; display: flex; flex-wrap: wrap; justify-content: space-between; gap: 12px; }
+</style>
+
+<header class="nav">
+  <div class="wrap">
+    <a class="mark" href="#top"><i aria-hidden="true"></i>tonight</a>
+    <nav>
+      <a class="link" href="#how">How it works</a>
+      <a class="link" href="#catchup">Catch-up</a>
+      <a class="link" href="#pricing">Pricing</a>
+      <a class="btn primary" href="#join">Join the waitlist</a>
+    </nav>
+  </div>
+</header>
+
+<main id="top">
+  <section class="hero">
+    <div class="wrap">
+      <div class="clockline label">
+        <span>Your time <b id="now">--:--</b></span>
+        <span>Next session <b id="next">21:00</b></span>
+        <span>Works with Discord</span>
+      </div>
+      <h1>Stop saying<br>“on later?”<br><em>Be on.</em></h1>
+      <div class="hero-grid">
+        <div>
+          <p class="lede">Tonight is a chat app built around plans. Call a time, your friends tap in, and the voice room opens itself when it's time, with everyone pinged. No more 400-message group chats that end with nobody online.</p>
+          <div class="ctas">
+            <a class="btn primary" href="#join">Get early access</a>
+            <a class="btn" href="#how">See how it works</a>
+          </div>
+        </div>
+        <div class="session" aria-label="Example session card">
+          <div class="top">
+            <span class="when" id="heroWhen">Fri 21:00</span>
+            <span class="count" id="countdown">starts in --:--:--</span>
+          </div>
+          <p class="what">Helldivers with the lads · called by Sam</p>
+          <div class="people">
+            <div class="person"><span class="av" style="background:#FFB547">S</span><span class="name">Sam</span><span class="pill in">In</span></div>
+            <div class="person"><span class="av" style="background:#6FD8A4">P</span><span class="name">Priya</span><span class="pill in">In</span></div>
+            <div class="person"><span class="av" style="background:#B9A6FF">J</span><span class="name">Jordan</span><span class="pill maybe">Maybe</span></div>
+            <div class="person"><span class="av" style="background:#7FC3FF">M</span><span class="name">Marcus</span><span class="pill in">In</span></div>
+          </div>
+          <div class="foot"><span class="dot pulse" aria-hidden="true"></span>Room opens automatically. Jordan gets a nudge at 20:45.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="band">
+    <div class="wrap">
+      <div class="stat"><b>412</b><span>messages in the group chat about “maybe playing tonight”</span></div>
+      <div class="stat"><b>0</b><span>people actually in the voice channel at 9pm</span></div>
+      <div class="stat"><b>1 tap</b><span>is all it takes with Tonight to say you're in</span></div>
+    </div>
+  </div>
+
+  <section class="block" id="how">
+    <div class="wrap">
+      <div class="block-head">
+        <span class="label">How it works</span>
+        <h2>Three steps from “anyone?” to everyone.</h2>
+      </div>
+      <div class="steps">
+        <div class="step">
+          <span class="n">Step 1</span>
+          <h3>Call it</h3>
+          <p>Pick a time and what you're doing. Type <code>9pm valorant</code> and Tonight works out the rest.</p>
+        </div>
+        <div class="step">
+          <span class="n">Step 2</span>
+          <h3>Everyone taps in</h3>
+          <p>Friends get one notification with three buttons: In, Maybe, Out. No scrolling, no reading back.</p>
+        </div>
+        <div class="step">
+          <span class="n">Step 3</span>
+          <h3>The room opens</h3>
+          <p>At the set time the voice room goes live and pings everyone who said yes. Maybes get a nudge 15 minutes before.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="block" style="padding-top:0">
+    <div class="wrap demo">
+      <div class="controls">
+        <div class="block-head" style="margin:0">
+          <span class="label">Try it</span>
+          <h2>Plan tonight.</h2>
+          <p class="lede">Pick a time, then tap each friend to change their answer.</p>
+        </div>
+        <div>
+          <span class="label">Start time</span>
+          <div class="chips" id="times" role="group" aria-label="Start time">
+            <button class="chip" type="button" data-t="20:00" aria-pressed="false">20:00</button>
+            <button class="chip" type="button" data-t="21:00" aria-pressed="true">21:00</button>
+            <button class="chip" type="button" data-t="21:30" aria-pressed="false">21:30</button>
+            <button class="chip" type="button" data-t="22:00" aria-pressed="false">22:00</button>
+          </div>
+        </div>
+        <div>
+          <span class="label">Playing</span>
+          <div class="chips" id="acts" role="group" aria-label="Activity">
+            <button class="chip" type="button" data-a="Helldivers 2" aria-pressed="true">Helldivers 2</button>
+            <button class="chip" type="button" data-a="Movie night" aria-pressed="false">Movie night</button>
+            <button class="chip" type="button" data-a="Just chatting" aria-pressed="false">Just chatting</button>
+          </div>
+        </div>
+      </div>
+      <div class="session">
+        <div class="top">
+          <span class="when" id="demoWhen">Tonight 21:00</span>
+          <span class="sample">Sample friends</span>
+        </div>
+        <p class="what" id="demoWhat">Helldivers 2 · called by you</p>
+        <div class="people" id="demoPeople"></div>
+        <div class="outcome" id="demoOut" aria-live="polite"></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="block band" id="catchup" style="border-bottom:0">
+    <div class="wrap catch">
+      <div class="block-head" style="margin:0">
+        <span class="label">Catch-up · Pro</span>
+        <h2>Missed the day? Read five lines.</h2>
+        <p class="lede">Open a server after work and Tonight tells you what happened, who's planning what, and anything that mentions you. Every point links back to the original message.</p>
+      </div>
+      <div class="feed">
+        <div class="hd">
+          <span class="label">#general · since 09:12</span>
+          <div class="toggle" role="tablist" aria-label="View">
+            <button type="button" role="tab" id="tabRaw" aria-selected="false">412 messages</button>
+            <button type="button" role="tab" id="tabSum" aria-selected="true">Catch-up</button>
+          </div>
+        </div>
+        <div class="msgs" id="raw" hidden>
+          <div class="msg"><b>Marcus</b><span>anyone on later</span></div>
+          <div class="msg"><b>Priya</b><span>maybe, depends on work</span></div>
+          <div class="msg"><b>Sam</b><span>lol did you see the patch notes</span></div>
+          <div class="msg"><b>Jordan</b><span>which ones</span></div>
+          <div class="msg"><b>Sam</b><span>the railgun ones. they nerfed it AGAIN</span></div>
+          <div class="msg"><b>Marcus</b><span>no way</span></div>
+          <div class="msg"><b>Priya</b><span>ok I can do 9 if we're quick</span></div>
+          <div class="msg"><b>Jordan</b><span>who's got the drive link for the holiday pics</span></div>
+          <div class="msg"><b>Sam</b><span>@you you still owe me £12 for pizza btw</span></div>
+          <div class="msg"><b>Marcus</b><span>9 works</span></div>
+          <div class="msg"><b>Jordan</b><span>might be late</span></div>
+        </div>
+        <ul class="summary" id="sum">
+          <li><span>Helldivers at 21:00. Sam, Priya and Marcus are in, Jordan might be late.<span class="src">14 messages · 16:02–18:40</span></span></li>
+          <li><span>Sam says you owe £12 for pizza.<span class="src">Mentions you · 12:31</span></span></li>
+          <li><span>The railgun got nerfed in today's patch. Mostly complaining.<span class="src">96 messages</span></span></li>
+          <li><span>Jordan is asking for the holiday photo link.<span class="src">Unanswered · 15:10</span></span></li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <section class="block">
+    <div class="wrap">
+      <div class="block-head">
+        <span class="label">Hangout rooms</span>
+        <h2>See who's around before you ask.</h2>
+        <p class="lede">Rooms stay open like a sofa you can drop onto. Status shows what people are actually doing, so you know if it's a good time.</p>
+      </div>
+      <div class="rooms">
+        <div class="room">
+          <div class="rh"><h3>The sofa</h3><span class="label"><span class="dot"></span>3 here</span></div>
+          <div class="row"><span class="av" style="background:#FFB547">S</span>Sam <span>watching F1</span></div>
+          <div class="row"><span class="av" style="background:#6FD8A4">P</span>Priya <span>cooking, on mic</span></div>
+          <div class="row"><span class="av" style="background:#7FC3FF">M</span>Marcus <span>browsing</span></div>
+        </div>
+        <div class="room">
+          <div class="rh"><h3>Desk club</h3><span class="label"><span class="dot"></span>2 here</span></div>
+          <div class="row"><span class="av" style="background:#B9A6FF">J</span>Jordan <span>working, muted</span></div>
+          <div class="row"><span class="av" style="background:#FF8FA3">A</span>Aisha <span>revising, 25 min left</span></div>
+        </div>
+        <div class="room">
+          <div class="rh"><h3>Squad</h3><span class="label" style="color:var(--muted)">Opens 21:00</span></div>
+          <div class="row"><span class="av" style="background:#FFB547">S</span>Sam <span>in</span></div>
+          <div class="row"><span class="av" style="background:#6FD8A4">P</span>Priya <span>in</span></div>
+          <div class="row"><span class="av" style="background:#7FC3FF">M</span>Marcus <span>in</span></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="block band" style="border-bottom:0">
+    <div class="wrap bot">
+      <div class="block-head" style="margin:0">
+        <span class="label">Works with Discord</span>
+        <h2>Keep your server. Add the plans.</h2>
+        <p class="lede">You don't have to move anyone. Add the Tonight bot to your Discord server and start planning with one command. Switch to the full app when your group is ready.</p>
+      </div>
+      <div class="term" aria-label="Example Discord command">
+        <div><span class="c">/tonight</span> 9pm helldivers</div>
+        <div class="m">─────────────────────────</div>
+        <div>Tonight · 21:00 · Helldivers</div>
+        <div class="m">[ In ]  [ Maybe ]  [ Out ]</div>
+        <div class="m">─────────────────────────</div>
+        <div>3 in · 1 maybe</div>
+        <div class="m">Voice opens in #squad at 21:00</div>
+      </div>
+    </div>
+  </section>
+
+  <section class="block" id="pricing">
+    <div class="wrap">
+      <div class="block-head">
+        <span class="label">Pricing</span>
+        <h2>Free to plan. Pay for the extras.</h2>
+      </div>
+      <div class="plans">
+        <div class="plan">
+          <span class="label">Free</span>
+          <div class="price">£0</div>
+          <p class="who">For any friend group.</p>
+          <ul>
+            <li>Unlimited plans and RSVPs</li>
+            <li>Auto-opening voice rooms</li>
+            <li>Hangout rooms for up to 10</li>
+            <li>Discord bot</li>
+          </ul>
+        </div>
+        <div class="plan featured">
+          <span class="label" style="color:var(--accent)">Pro</span>
+          <div class="price">£4 <small>/ month</small></div>
+          <p class="who">For you, across every server.</p>
+          <ul>
+            <li>Catch-up summaries</li>
+            <li>1080p 60fps screen share</li>
+            <li>500 MB uploads</li>
+            <li>Custom profile and room themes</li>
+          </ul>
+        </div>
+        <div class="plan">
+          <span class="label">Server Boost</span>
+          <div class="price">£12 <small>/ month</small></div>
+          <p class="who">For community owners.</p>
+          <ul>
+            <li>Catch-up for every member</li>
+            <li>AI moderation tuned to your rules</li>
+            <li>Event analytics and attendance</li>
+            <li>Paid member tiers (5% fee)</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="block" style="padding-top:0">
+    <div class="wrap">
+      <div class="block-head"><span class="label">Questions</span></div>
+      <div class="faq">
+        <details><summary>Do my friends need to leave Discord?</summary><p>No. Start with the Discord bot. It handles plans and RSVPs inside your existing server. The full app is there when you want hangout rooms and catch-up.</p></details>
+        <details><summary>Is it only for gaming?</summary><p>No. People use it for movie nights, study sessions, five-a-side and anything else where the hard part is getting everyone there at the same time.</p></details>
+        <details><summary>How does catch-up handle my messages?</summary><p>Summaries are made only for servers you're in, only from messages you can already see, and they aren't used to train models. Server owners can turn it off.</p></details>
+        <details><summary>What happens if only one person says yes?</summary><p>You choose a minimum. If not enough people are in 15 minutes before, Tonight asks whether to keep it, move it or call it off.</p></details>
+        <details><summary>When does it launch?</summary><p>The Discord bot opens to the waitlist first, followed by the desktop and mobile apps.</p></details>
+      </div>
+    </div>
+  </section>
+
+  <section class="block join" id="join">
+    <div class="wrap">
+      <span class="label">Early access</span>
+      <h2>See you<br>tonight.</h2>
+      <form class="form" id="form" novalidate>
+        <label class="label" for="email" style="position:absolute;left:-9999px">Email</label>
+        <input id="email" name="email" type="email" placeholder="you@email.com" autocomplete="email" required>
+        <button class="btn primary" type="submit">Join the waitlist</button>
+      </form>
+      <p class="form-note" id="note" aria-live="polite">First 1,000 people get Pro free for 3 months.</p>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap label">
+    <span>Tonight © 2026</span>
+    <span>Plans that turn into sessions</span>
+  </div>
+</footer>
+
+<script>
+(function () {
+  const pad = n => String(n).padStart(2, "0");
+  const days = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+
+  // Live clock + countdown to the next 21:00
+  function tick() {
+    const now = new Date();
+    document.getElementById("now").textContent = pad(now.getHours()) + ":" + pad(now.getMinutes());
+    const target = new Date(now); target.setHours(21, 0, 0, 0);
+    const end = new Date(now); end.setHours(23, 30, 0, 0);
+    const cd = document.getElementById("countdown");
+    if (now >= target && now < end) {
+      cd.textContent = "live now · 3 in voice";
+      document.getElementById("heroWhen").textContent = "Tonight 21:00";
+      return;
+    }
+    if (now >= end) target.setDate(target.getDate() + 1);
+    const diff = Math.max(0, Math.floor((target - now) / 1000));
+    cd.textContent = "starts in " + pad(Math.floor(diff / 3600)) + ":" + pad(Math.floor(diff % 3600 / 60)) + ":" + pad(diff % 60);
+    const sameDay = target.toDateString() === now.toDateString();
+    document.getElementById("heroWhen").textContent = (sameDay ? "Tonight" : days[target.getDay()]) + " 21:00";
+  }
+  tick(); setInterval(tick, 1000);
+
+  // Planner demo
+  const friends = [
+    { n: "Sam", c: "#FFB547", s: "in" },
+    { n: "Priya", c: "#6FD8A4", s: "in" },
+    { n: "Jordan", c: "#B9A6FF", s: "maybe" },
+    { n: "Marcus", c: "#7FC3FF", s: "in" },
+    { n: "Aisha", c: "#FF8FA3", s: "out" }
+  ];
+  const order = ["in", "maybe", "out"];
+  const label = { in: "In", maybe: "Maybe", out: "Out" };
+  let time = "21:00", act = "Helldivers 2";
+  const peopleEl = document.getElementById("demoPeople");
+
+  function minus15(t) {
+    let [h, m] = t.split(":").map(Number);
+    m -= 15; if (m < 0) { m += 60; h -= 1; }
+    return pad(h) + ":" + pad(m);
+  }
+  function render() {
+    peopleEl.innerHTML = "";
+    friends.forEach((f, i) => {
+      const b = document.createElement("button");
+      b.type = "button"; b.className = "person";
+      b.setAttribute("aria-label", f.n + ": " + label[f.s] + ". Tap to change.");
+      b.innerHTML = '<span class="av" style="background:' + f.c + '">' + f.n[0] + '</span><span class="name">' + f.n + '</span><span class="pill ' + f.s + '">' + label[f.s] + '</span>';
+      b.addEventListener("click", () => { f.s = order[(order.indexOf(f.s) + 1) % 3]; render(); });
+      peopleEl.appendChild(b);
+    });
+    document.getElementById("demoWhen").textContent = "Tonight " + time;
+    document.getElementById("demoWhat").textContent = act + " · called by you";
+    const ins = friends.filter(f => f.s === "in");
+    const maybes = friends.filter(f => f.s === "maybe");
+    const out = document.getElementById("demoOut");
+    const total = ins.length + 1;
+    if (ins.length === 0) {
+      out.innerHTML = "Nobody's in yet. At <strong>" + minus15(time) + "</strong> Tonight will ask if you want to move it or call it off.";
+    } else {
+      let txt = "Room opens at <strong>" + time + "</strong> with <strong>" + total + " people</strong> (you + " + ins.map(f => f.n).join(", ") + ").";
+      if (maybes.length) txt += " " + maybes.map(f => f.n).join(" and ") + " get" + (maybes.length === 1 ? "s" : "") + " a nudge at " + minus15(time) + ".";
+      out.innerHTML = txt;
+    }
+  }
+  function chipGroup(id, attr, set) {
+    const g = document.getElementById(id);
+    g.addEventListener("click", e => {
+      const b = e.target.closest("button"); if (!b) return;
+      g.querySelectorAll("button").forEach(x => x.setAttribute("aria-pressed", String(x === b)));
+      set(b.dataset[attr]); render();
+    });
+  }
+  chipGroup("times", "t", v => time = v);
+  chipGroup("acts", "a", v => act = v);
+  render();
+
+  // Catch-up toggle
+  const tabRaw = document.getElementById("tabRaw"), tabSum = document.getElementById("tabSum");
+  const raw = document.getElementById("raw"), sum = document.getElementById("sum");
+  function show(summary) {
+    tabSum.setAttribute("aria-selected", String(summary));
+    tabRaw.setAttribute("aria-selected", String(!summary));
+    sum.hidden = !summary; raw.hidden = summary;
+  }
+  tabRaw.addEventListener("click", () => show(false));
+  tabSum.addEventListener("click", () => show(true));
+
+  // Waitlist (no backend yet)
+  document.getElementById("form").addEventListener("submit", e => {
+    e.preventDefault();
+    const input = document.getElementById("email");
+    const note = document.getElementById("note");
+    const v = input.value.trim();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)) {
+      note.className = "form-note";
+      note.textContent = "That email doesn't look right. Check it and try again.";
+      input.focus(); return;
+    }
+    note.className = "form-note ok";
+    note.textContent = "You're on the list. We'll email " + v + " when your invite is ready.";
+    input.value = "";
+  });
+})();
+</script>
