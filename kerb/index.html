@@ -1,0 +1,200 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Kerb</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="description" content="Kerb: taxi dispatch, driver and customer booking apps that work together. Built for UK firms with self-employed drivers.">
+<meta name="theme-color" content="#09090B">
+<meta property="og:title" content="Kerb">
+<meta property="og:description" content="Dispatch and booking that drivers actually like.">
+<meta property="og:image" content="assets/shot-dispatch.jpg">
+<link rel="icon" href="assets/icon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="css/tokens.css">
+<link rel="stylesheet" href="css/site.css">
+</head>
+<body class="site">
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <symbol id="logo" viewBox="0 0 120 120">
+      <path fill="currentColor" d="M44 18h32l5 14H39z"/>
+      <path fill="currentColor" d="M22 58l9-18a10 10 0 0 1 9-6h40a10 10 0 0 1 9 6l9 18v24H22z"/>
+      <circle cx="40" cy="70" r="6" fill="var(--bg)"/><circle cx="80" cy="70" r="6" fill="var(--bg)"/>
+      <rect x="8" y="94" width="104" height="10" rx="3" fill="currentColor"/>
+      <rect x="14" y="96" width="14" height="6" rx="1" fill="var(--bg)"/><rect x="40" y="96" width="14" height="6" rx="1" fill="var(--bg)"/><rect x="66" y="96" width="14" height="6" rx="1" fill="var(--bg)"/><rect x="92" y="96" width="14" height="6" rx="1" fill="var(--bg)"/>
+    </symbol>
+  </defs>
+</svg>
+
+<div class="page">
+  <header class="top">
+    <a href="#top" aria-label="Kerb home"><svg class="logo" width="42" height="42" viewBox="0 0 120 120"><use href="#logo"/></svg></a>
+    <a class="login" href="app.html#dispatch" data-app="dispatch"><span class="ic"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h13M11 6l6 6-6 6M21 4v16"/></svg></span>Login</a>
+  </header>
+
+  <main id="top">
+    <div class="hero narrow">
+      <div class="brand">
+        <svg class="logo" viewBox="0 0 120 120" aria-hidden="true"><use href="#logo"/></svg>
+        <h1>Kerb</h1><span class="ver">1.0</span>
+      </div>
+      <p class="tag">Taxi dispatch, driver and booking apps that work together. Built for UK firms with self-employed drivers, and for the people who actually use it all day.</p>
+
+      <nav class="stack" aria-label="Main">
+        <a class="big primary" href="app.html#demo" data-app="demo">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 4l14 8-14 8z"/></svg>
+          <span>Watch the live demo<span class="sub">Book a ride and watch it reach dispatch and the driver</span></span>
+        </a>
+        <a class="big" href="#pricing">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M17 20H7c2-1.5 3-3.5 3-6V8a4 4 0 0 1 7.5-2M6 13h8"/></svg>
+          Pricing for your firm
+        </a>
+        <a class="big" href="#drivers">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 17h14M6 17v2M18 17v2M3 13l2-6a2 2 0 0 1 2-1.4h10A2 2 0 0 1 19 7l2 6v4H3zM3 13h18"/></svg>
+          For drivers
+        </a>
+      </nav>
+
+      <nav class="links" aria-label="Info">
+        <a href="#why">About</a>
+        <a href="#pricing">Pricing</a>
+        <a href="#faq">Privacy</a>
+        <a href="#faq">Terms</a>
+        <a href="#faq">Help</a>
+      </nav>
+    </div>
+
+    <div class="shots">
+      <div class="window">
+        <div class="chrome"><i></i><i></i><i></i><span>kerb · dispatch · Seaside Cars (demo)</span></div>
+        <img class="contain" src="assets/shot-dispatch.jpg" alt="Kerb dispatch console: a live map of Blackpool with cars, zone queues and the job board" width="1440" height="900">
+      </div>
+      <div class="phone"><img src="assets/shot-driver.jpg" alt="Kerb driver app showing a new job offer with the fare and Accept button" width="390" height="800"></div>
+    </div>
+
+    <section id="why">
+      <div class="sh">
+        <span class="k">Why firms switch</span>
+        <h2>The old apps were built for the office. Kerb is built for everyone.</h2>
+      </div>
+      <div class="pains">
+        <div class="pain"><h3>Drivers</h3><ul>
+          <li class="was">Jobs pop up with no fare</li><li class="now">See the fare and pick-up time before accepting</li>
+          <li class="was">No idea what you've earned</li><li class="now">Cash and card totals for the day, week and tax year</li>
+          <li class="now">Expenses, mileage and a tax summary for your accountant</li>
+          <li class="now">Document reminders and an SOS button</li></ul></div>
+        <div class="pain"><h3>Dispatch</h3><ul>
+          <li class="was">Cluttered screens and slow phone bookings</li><li class="now">Book a phone job in seconds; returning callers fill in automatically</li>
+          <li class="now">Live map with zone queues and auto-dispatch</li>
+          <li class="now">Late jobs turn red so nothing gets forgotten</li>
+          <li class="now">Message any car, see SOS alerts instantly</li></ul></div>
+        <div class="pain"><h3>Customers</h3><ul>
+          <li class="was">"Where's my taxi?" phone calls</li><li class="now">Live tracking with the driver, car and reg</li>
+          <li class="now">Price up front, pay the driver by cash or card</li>
+          <li class="now">Book by message, like texting the office</li>
+          <li class="now">Rate the driver and get a receipt</li></ul></div>
+      </div>
+    </section>
+
+    <section id="features">
+      <div class="sh"><span class="k">Everything in one system</span><h2>Three apps. One live picture.</h2></div>
+      <div class="grid">
+        <div class="feat"><span class="fi">🗺️</span><h3>Live dispatch map</h3><p>Every car, every waiting job and every route on one map. Click a car to message it or see its day.</p></div>
+        <div class="feat"><span class="fi">⚡</span><h3>Auto-dispatch</h3><p>First in the zone queue or nearest car, your choice. Offers time out and move on automatically.</p></div>
+        <div class="feat"><span class="fi">📞</span><h3>Fast phone bookings</h3><p>Type a number and returning customers fill in. Local places and street numbers autocomplete.</p></div>
+        <div class="feat"><span class="fi">💬</span><h3>Book by message</h3><p>Customers text "Tower to the airport at 8pm for 3" and get a price back. Reply YES to book.</p></div>
+        <div class="feat"><span class="fi">📍</span><h3>Live tracking</h3><p>Customers see the car coming, the driver's name, car and reg, and a countdown.</p></div>
+        <div class="feat"><span class="fi">💷</span><h3>Cash or card</h3><p>Drivers keep their own card machines. They tap Cash or Card at drop-off so the records match.</p></div>
+        <div class="feat"><span class="fi">🧾</span><h3>Earnings and tax</h3><p>Takings, expenses, mileage and a CSV for the accountant. Actual costs vs 45p a mile, side by side.</p></div>
+        <div class="feat"><span class="fi">🏦</span><h3>Weekly rent</h3><p>See who's paid this week and who hasn't. Drivers see what's due in their app.</p></div>
+        <div class="feat"><span class="fi">📄</span><h3>Driver documents</h3><p>Badge, licence, insurance, MOT and plate expiry dates with warnings before they lapse.</p></div>
+        <div class="feat"><span class="fi">🎆</span><h3>Event pricing</h3><p>Switch on a boost for the Illuminations or match days. Night and Sunday rates built in.</p></div>
+        <div class="feat"><span class="fi">📊</span><h3>Reports</h3><p>Bookings by hour, where they come from, busiest pick-ups, pick-up times and each driver's week.</p></div>
+        <div class="feat"><span class="fi">🆘</span><h3>Driver safety</h3><p>One tap SOS from the driver app sounds an alarm in the office with the car's location.</p></div>
+      </div>
+    </section>
+
+    <section id="drivers">
+      <div class="sh"><span class="k">For drivers</span><h2>Your app, your money, your records.</h2><p>Self-employed drivers get the tools the old systems never gave them. Big buttons, works on any Android or iPhone, and it tells you what you've earned.</p></div>
+      <div class="steps3">
+        <div class="step3"><h3>Go available</h3><p>See your zone and your place in the queue. Break and Off are one tap away.</p></div>
+        <div class="step3"><h3>Take the job</h3><p>Fare, distance and pick-up time on the offer. Navigate, call the customer, mark outside, on board, done.</p></div>
+        <div class="step3"><h3>Get paid</h3><p>Tap Cash or Card. Your takings, rent and tax estimate update instantly.</p></div>
+      </div>
+    </section>
+
+    <section id="pricing">
+      <div class="sh"><span class="k">Pricing</span><h2>Per car, per week. Like your drivers' rent.</h2></div>
+      <div class="plans">
+        <div class="plan">
+          <div class="nm">Starter</div>
+          <div class="pr">£4 <small>/ car / week</small></div>
+          <ul><li>Dispatch console and live map</li><li>Driver app with earnings and tax</li><li>Customer booking app</li><li>Rent tracking and documents</li></ul>
+          <a class="big" href="app.html#demo" data-app="demo">Try the demo</a>
+        </div>
+        <div class="plan hl">
+          <div class="nm">Pro <span class="pop">Popular</span></div>
+          <div class="pr">£6 <small>/ car / week</small></div>
+          <ul><li>Everything in Starter</li><li>Book by message (WhatsApp style)</li><li>Website booking widget</li><li>Reports and business accounts</li></ul>
+          <a class="big primary" href="app.html#demo" data-app="demo">Try the demo</a>
+        </div>
+        <div class="plan">
+          <div class="nm">Fleet</div>
+          <div class="pr">Talk <small>to us</small></div>
+          <ul><li>100+ cars or several firms</li><li>AI phone answering at busy times</li><li>Your own branded customer app</li><li>Card machine links (SumUp, Zettle)</li></ul>
+          <a class="big" href="#faq">Ask a question</a>
+        </div>
+      </div>
+      <p class="beta">First month free. No setup fee. No contract. A 40-car firm on Starter pays £160 a week.</p>
+    </section>
+
+    <section id="switch">
+      <div class="sh"><span class="k">Switching</span><h2>Live in a day.</h2></div>
+      <div class="steps3">
+        <div class="step3"><h3>Send us your lists</h3><p>Drivers, cars and regular customers from a spreadsheet. We load them in for you.</p></div>
+        <div class="step3"><h3>Drivers install the app</h3><p>A link by text. They pick their car and they're on. No new phones needed.</p></div>
+        <div class="step3"><h3>Go live</h3><p>Keep your phone numbers. Run Kerb side by side with your old system until you're happy.</p></div>
+      </div>
+    </section>
+
+    <section id="faq">
+      <div class="sh"><span class="k">Questions</span></div>
+      <div class="faq narrow">
+        <details><summary>Our drivers use their own card machines. Does that work?</summary><p>Yes. Customers pay the driver by cash or card, and the driver taps which at drop-off. Kerb never touches the money. Links to SumUp and Zettle readers are coming so the fare goes straight to the machine.</p></details>
+        <details><summary>How do we charge drivers?</summary><p>Set each driver's weekly rent. The office sees who's paid, and drivers see what's due in their earnings screen.</p></details>
+        <details><summary>Does it do private hire and hackney?</summary><p>It's built around pre-booked private hire, with zone queues for ranks. Hackney meters and council-specific rules can be added per area.</p></details>
+        <details><summary>What phones do drivers need?</summary><p>Any recent Android phone or iPhone. The app is built for big thumbs, bright sun and patchy signal.</p></details>
+        <details><summary>Is the tax tracker official advice?</summary><p>No. It gives drivers clear totals and estimates, and a file for their accountant. It doesn't replace an accountant or HMRC guidance.</p></details>
+        <details><summary>Who owns the data?</summary><p>You do. Export your jobs, drivers and customers at any time. We don't sell data or show ads.</p></details>
+      </div>
+    </section>
+
+    <section class="cta">
+      <h2>See it run.</h2>
+      <a class="big primary" href="app.html#demo" data-app="demo">Watch the live demo</a>
+    </section>
+  </main>
+</div>
+
+<footer>
+  <div class="page">
+    <span>© 2026 Kerb · Made in Blackpool</span>
+    <span class="fl"><a href="#why">About</a><a href="#pricing">Pricing</a><a href="#faq">Help</a></span>
+  </div>
+</footer>
+
+<script>
+  // Inside Claude, app buttons open the live app; anywhere else they open app.html next to this page.
+  (function () {
+    var LIVE_APP = "https://claude.ai/artifact/KzXimsPWuop1ca4mtLKLNR";
+    if (window.claude && typeof window.claude.use === "function" && LIVE_APP.indexOf("https://") === 0) {
+      document.querySelectorAll("[data-app]").forEach(function (a) { a.href = LIVE_APP + "#" + a.getAttribute("data-app"); a.target = "_blank"; a.rel = "noopener"; });
+    }
+  })();
+</script>
+</body>
+</html>

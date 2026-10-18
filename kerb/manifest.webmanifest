@@ -1,0 +1,11 @@
+{
+  "name": "Kerb",
+  "short_name": "Kerb",
+  "description": "Taxi booking, driver and dispatch apps that work together.",
+  "start_url": "app.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#09090B",
+  "theme_color": "#09090B",
+  "icons": [{ "src": "assets/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }]
+}
