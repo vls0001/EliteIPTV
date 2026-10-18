@@ -39,7 +39,7 @@ export function renderAccounts(body, rerender) {
       h("tbody", {}, accs.map(([id, a]) => {
         const mj = month(id);
         const inv = Object.values(K.invoices).filter(x => x.account === id).sort((x, y) => y.at - x.at)[0];
-        return h("tr", { class: selAcc === id ? "sel" : "", onclick: e => { if (e.target.closest("button")) return; selAcc = id; rerender(); } },
+        return h("tr", { class: selAcc === id ? "sel" : "", onclick: e => { if (e.target.closest("button")) return; selAcc = id; rerender(); setTimeout(() => { const el = document.querySelector(".acc-detail"); if (el && window.innerWidth < 700) el.scrollIntoView({ behavior: "smooth", block: "start" }); }, 60); } },
           h("td", {}, h("b", { text: a.name }), h("div", {}, h("span", { class: "pill " + (a.kind === "nhs" ? "info" : ""), text: ACCOUNT_KINDS[a.kind] || a.kind }))),
           h("td", {}, a.contact || "", h("div", { class: "dim small", text: a.phone || "" })),
           h("td", {}, h("b", { text: mj.length + " trips" }), h("div", { class: "dim small", text: money(mj.reduce((s, j) => s + (j.fare || 0), 0)) })),

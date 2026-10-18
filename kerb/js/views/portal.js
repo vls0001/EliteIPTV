@@ -37,7 +37,7 @@ export function mountPortal(root, accId) {
     const byIn = h("input", { class: "input", id: "pt-by", value: bookedBy, placeholder: "e.g. Sarah, Ward 6", autocomplete: "name" });
     byIn.addEventListener("input", () => { bookedBy = byIn.value; store.set("portalBy", bookedBy); });
     const pName = h("input", { class: "input", id: "pt-name", value: f.passenger, placeholder: a.kind === "nhs" ? "Patient's full name" : "Passenger's name", autocomplete: "off" });
-    const pPhone = h("input", { class: "input", id: "pt-phone", value: f.phone, placeholder: "Mobile (optional, gets text updates)", inputmode: "tel", autocomplete: "off" });
+    const pPhone = h("input", { class: "input", id: "pt-phone", value: f.phone, placeholder: "Mobile (optional)", inputmode: "tel", autocomplete: "off" });
     pName.addEventListener("input", () => f.passenger = pName.value); pPhone.addEventListener("input", () => f.phone = pPhone.value);
     const pick = placeInput("pt-pick", "Home address or postcode", f.pickup, p => { f.pickup = p; drawPrice(); });
     const destChips = h("div", { class: "opts wrap" }, (a.destinations || []).map(n => findNamed(n)).filter(Boolean).map(p => h("button", { type: "button", class: "opt" + (f.drop && f.drop.name === p.name ? " on" : ""), onclick: () => { f.drop = p; drop.set(p); render(); } }, p.name)));

@@ -2,7 +2,7 @@
 import { APP, VEHICLES, STATUS, SOURCES, ZONES, DOCS, DEFAULT_SETTINGS, MOBILITY } from "../config.js";
 import { renderAccounts, renderQuality, renderPlanner } from "./office.js";
 import { hotSpots } from "../features/planner.js";
-import { h, fill, icon, toast, store, modal, menu, stamp, fmtTime, relTime, confirmBox, isMobile } from "../lib/dom.js";
+import { h, fill, icon, toast, store, modal, menu, stamp, fmtTime, relTime, confirmBox, isMobile, labelTables } from "../lib/dom.js";
 import { posOf, etaMinutes, money, zoneOf, zoneName, routeMiles, driveMinutes, searchPlaces, quote } from "../lib/geo.js";
 import { createMap } from "../lib/map.js";
 import { alarm, ping } from "../lib/sound.js";
@@ -42,7 +42,9 @@ export function mountDispatch(root) {
         K.settings.boost > 1 ? h("span", { class: "chip warn", text: "×" + K.settings.boost + " " + (K.settings.boostLabel || "boost") }) : null,
         missedChip(),
         h("span", { class: "chip dim", title: K.engineLeader ? "This screen is running auto-dispatch" : "Another open screen is running auto-dispatch" }, h("i", { class: "sdot " + (K.settings.autoDispatch ? "free" : "off") }), K.settings.autoDispatch ? "Auto" : "Manual")),
-      h("button", { type: "button", class: "btn primary", onclick: () => newBooking() }, icon("plus", 16), h("span", { text: "New booking" })));
+      h("button", { type: "button", class: "btn primary", "aria-label": "New booking", onclick: () => newBooking() }, icon("plus", 16), h("span", { text: "New booking" })));
+    const nav = top.querySelector(".k-tabs"), on = top.querySelector(".k-tab.on");
+    if (nav && on && nav.scrollWidth > nav.clientWidth) nav.scrollLeft = Math.max(0, on.offsetLeft - nav.clientWidth / 2 + on.offsetWidth / 2);
   }
 
   // ---------- incoming calls (caller ID) ----------
@@ -60,8 +62,9 @@ export function mountDispatch(root) {
     return { key, cust, acc: acc ? { id: acc[0], ...acc[1] } : null, trips, usual: usual && usual.n >= 2 ? usual.j : null, live, issues, lost, noshows: trips.filter(j => j.status === "noshow").length };
   }
   function renderCalls() {
-    const ringing = K.calls.filter(c => c.status === "ringing" && Date.now() - c.at < 35000);
-    fill(callBox, ringing.slice(0, 2).map(c => {
+    const seen = new Set();
+    const ringing = K.calls.filter(c => c.status === "ringing" && Date.now() - c.at < 35000).sort((a, b) => b.at - a.at).filter(c => { const k = digits(c.number); if (seen.has(k)) return false; seen.add(k); return true; });
+    fill(callBox, ringing.slice(0, shell.clientWidth < 640 ? 1 : 2).map(c => {
       const w = whoIs(c.number);
       const name = w.acc ? w.acc.name : w.cust ? w.cust.name : "Unknown caller";
       const places = (w.cust && w.cust.places) || [];
@@ -375,9 +378,10 @@ export function mountDispatch(root) {
     const collected = rows.filter(x => x.r && x.r.paid).reduce((a, x) => a + x.r.amount, 0);
     const owed = rows.filter(x => !(x.r && x.r.paid)).reduce((a, x) => a + (x.r ? x.r.amount : x.d.rent || 0), 0);
     fill(body, h("div", { class: "office" },
-      h("p", { class: "note small", text: "Account work (NHS, council, hotels) is billed by the office, so it's paid to drivers. Balance = account work minus unpaid rent." }),
       h("div", { class: "office-hd" }, h("h1", { text: "Weekly rent" }), h("div", { class: "seg" }, [[2, "2 weeks ago"], [1, "Last week"], [0, "This week"]].map(([n, l]) => h("button", { type: "button", class: "seg-btn" + (rentWeekBack === n ? " on" : ""), onclick: () => { rentWeekBack = n; renderRentTab(); } }, l)))),
       h("div", { class: "kpis" }, kpi("Week starting", new Date(wk).toLocaleDateString(undefined, { day: "numeric", month: "short" })), kpi("Collected", money(collected)), kpi("Outstanding", money(owed), owed ? "warn" : ""), kpi("Drivers paid", rows.filter(x => x.r && x.r.paid).length + " of " + rows.length)),
+      h("p", { class: "note small", text: "Account work (NHS, council, hotels) is billed by the office, so it's paid to drivers. Balance = account work minus unpaid rent." }),
+
       h("div", { class: "tablewrap" }, h("table", { class: "tbl" },
         h("thead", {}, h("tr", {}, ["Car", "Driver", "Rent", "Account work", "Balance", "Status", ""].map(t => h("th", { text: t })))),
         h("tbody", {}, rows.map(({ d, r, acc }) => h("tr", {},
@@ -492,6 +496,7 @@ export function mountDispatch(root) {
     else if (tab === "planner") renderPlanner(body, render);
     else if (tab === "reports") renderReportsTab();
     else renderSettingsTab();
+    labelTables(body);
   }
 
   let callKey = "", lastOffice = 0;

@@ -291,4 +291,18 @@ export async function copyText(text) {
   }
 }
 
+// on phones, tables turn into stacked cards: each cell gets its column name as a label
+export function labelTables(root) {
+  for (const t of root.querySelectorAll("table.tbl")) {
+    const heads = [...t.querySelectorAll("thead th")].map(th => th.textContent.trim());
+    for (const tr of t.querySelectorAll("tbody tr")) [...tr.children].forEach((td, i) => {
+      if (td.dataset.label != null) return;
+      td.dataset.label = heads[i] || "";
+      const v = document.createElement("span"); v.className = "tdv";
+      while (td.firstChild) v.append(td.firstChild);
+      td.append(v);
+    });
+  }
+}
+
 export const randomCode = (n = 6) => Array.from({ length: n }, () => "abcdefghjkmnpqrstuvwxyz23456789"[Math.floor(Math.random() * 31)]).join("");

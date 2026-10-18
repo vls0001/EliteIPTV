@@ -72,8 +72,8 @@ export function mountBook(root) {
     const notes = h("input", { class: "b-input sm", id: "b-notes", value: draft.notes, placeholder: "Notes for the driver (optional)", maxlength: 120 });
     const otherTg = h("input", { type: "checkbox", class: "tg", id: "b-other" }); otherTg.checked = !!forOther;
     const oName = h("input", { class: "b-input sm", id: "b-oname", value: forOther ? forOther.name : "", placeholder: "Passenger's name", autocomplete: "off" });
-    const oPhone = h("input", { class: "b-input sm", id: "b-ophone", value: forOther ? forOther.phone : "", placeholder: "Passenger's mobile (they get the texts)", inputmode: "tel", autocomplete: "off" });
-    const oBox = h("div", { class: "b-other", hidden: !forOther }, oName, oPhone, h("small", { class: "dim", text: "The driver sees their name and calls them. You still get the updates." }));
+    const oPhone = h("input", { class: "b-input sm", id: "b-ophone", value: forOther ? forOther.phone : "", placeholder: "Passenger's mobile", inputmode: "tel", autocomplete: "off" });
+    const oBox = h("div", { class: "b-other", hidden: !forOther }, oName, oPhone, h("small", { class: "dim", text: "They get the texts and the driver calls them. You still get updates too." }));
     otherTg.addEventListener("change", () => { oBox.hidden = !otherTg.checked; forOther = otherTg.checked ? { name: oName.value, phone: oPhone.value } : null; store.set("forOther", forOther); if (otherTg.checked) oName.focus(); });
     [oName, oPhone].forEach(i => i.addEventListener("input", () => { forOther = { name: oName.value, phone: oPhone.value }; store.set("forOther", forOther); }));
     const bookBtn = h("button", { type: "button", class: "b-book" }, "Book");
