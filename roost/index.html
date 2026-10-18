@@ -1,0 +1,174 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Roost</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="description" content="Roost is where your people hang out: servers, DMs, hangouts, games, polls and an AI that catches you up.">
+<meta name="theme-color" content="#09090B">
+<meta property="og:title" content="Roost">
+<meta property="og:description" content="Where your people hang out.">
+<meta property="og:image" content="assets/shot-desktop.jpg">
+<link rel="icon" href="assets/icon.svg" type="image/svg+xml">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="css/tokens.css">
+<link rel="stylesheet" href="css/site.css">
+</head>
+<body class="site">
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <symbol id="logo" viewBox="0 0 120 120">
+      <path fill="currentColor" d="M58 14c-26 0-46 19-46 44 0 12 5 23 13 31l-7 19 21-8c6 3 12 4 19 4 26 0 46-19 46-44S84 14 58 14z"/>
+      <path fill="currentColor" d="M100 46l18 8-18 8z"/>
+      <circle cx="74" cy="46" r="7" fill="var(--bg)"/>
+    </symbol>
+  </defs>
+</svg>
+
+<div class="page">
+  <header class="top">
+    <a href="#top" aria-label="Roost home"><svg class="logo" width="40" height="40" viewBox="0 0 120 120"><use href="#logo"/></svg></a>
+    <a class="login" href="app.html" data-app><span class="ic"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h13M11 6l6 6-6 6M21 4v16"/></svg></span>Login</a>
+  </header>
+
+  <main id="top">
+    <div class="hero narrow">
+      <div class="brand">
+        <svg class="logo" viewBox="0 0 120 120" aria-hidden="true"><use href="#logo"/></svg>
+        <h1>Roost</h1>
+      </div>
+      <p class="tag">Where your people hang out. Servers, DMs, hangouts, games and an AI that catches you up on everything you missed.</p>
+
+      <nav class="stack" aria-label="Main">
+        <a class="big primary" href="app.html" data-app>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a8 8 0 0 1-11.6 7.1L4 21l1.9-5.4A8 8 0 1 1 21 12z"/></svg>
+          Open Roost
+        </a>
+        <a class="big" href="#install">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="2" width="12" height="20" rx="3"/><path d="M11 18h2"/></svg>
+          Get it on your phone
+        </a>
+        <a class="big" href="#features">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5a2 2 0 0 1 2-2h13v16H6a2 2 0 0 0-2 2z"/><path d="M4 21V5M8 7h7"/></svg>
+          What's inside
+        </a>
+      </nav>
+
+      <nav class="links" aria-label="Info">
+        <a href="#features">About</a>
+        <a href="#privacy">Privacy</a>
+        <a href="#privacy">Terms</a>
+        <a href="#privacy">Acceptable Use</a>
+        <a href="#faq">Help</a>
+      </nav>
+    </div>
+
+    <div class="shots">
+      <div class="window">
+        <div class="chrome"><i></i><i></i><i></i><span>roost · The Lads · #general</span></div>
+        <img src="assets/shot-desktop.jpg" alt="Roost on desktop: a server called The Lads with channels, a poll, tic-tac-toe and the member list" width="1280" height="780">
+      </div>
+      <div class="phone"><img src="assets/shot-phone.jpg" alt="Roost on a phone showing the #general channel" width="390" height="800"></div>
+    </div>
+
+    <section id="features">
+      <div class="sh">
+        <span class="k">What's inside</span>
+        <h2>Everything you'd expect. Plus the bits you've always wanted.</h2>
+      </div>
+      <div class="grid">
+        <div class="feat"><span class="fi">#</span><h3>Servers and channels</h3><p>Make a server in seconds from a template. Text channels, announcement channels and hangouts, with invite codes.</p></div>
+        <div class="feat"><span class="fi">💬</span><h3>DMs and group chats</h3><p>Message friends one to one or start a group. Friend requests, blocking and a mentions inbox included.</p></div>
+        <div class="feat"><span class="fi">↩︎</span><h3>Replies and threads</h3><p>Reply to any message or spin off a thread so side conversations don't take over the channel.</p></div>
+        <div class="feat"><span class="fi">😂</span><h3>Reactions and custom emoji</h3><p>React with anything. Upload your server's own emoji and use them with <code>:name:</code>.</p></div>
+        <div class="feat"><span class="fi">🔊</span><h3>Hangouts</h3><p>Drop into a room and see who's there. Soundboard clips and floating emotes everyone hears and sees.</p></div>
+        <div class="feat"><span class="fi">🎮</span><h3>Games in chat</h3><p>Tic-tac-toe, rock paper scissors, 30-second trivia, dice and coin flips. Type <code>/ttt</code> and go.</p></div>
+        <div class="feat"><span class="fi">📊</span><h3>Polls and watch parties</h3><p>Settle plans with a poll. Start a watch party and everyone presses play on the same countdown.</p></div>
+        <div class="feat"><span class="fi">✨</span><h3>Roost AI</h3><p>@mention the AI to answer questions or settle arguments. Catch-up summarises what you missed in five lines.</p></div>
+        <div class="feat"><span class="fi">🌍</span><h3>Translate</h3><p>Translate any message into your language with one tap. Great for international servers.</p></div>
+        <div class="feat"><span class="fi">🛡️</span><h3>Roles and moderation</h3><p>Owners, mods and members. Time outs, kicks, bans, slow mode, blocked words and AI auto-mod.</p></div>
+        <div class="feat"><span class="fi">🔎</span><h3>Search and pins</h3><p>Search a whole server with <code>from:</code> and <code>has:</code> filters. Pin what matters.</p></div>
+        <div class="feat"><span class="fi">🎨</span><h3>Make it yours</h3><p>Dark, OLED black or light. Accent colours, text size, compact mode, profiles with banners and bios.</p></div>
+      </div>
+    </section>
+
+    <section id="pricing">
+      <div class="sh">
+        <span class="k">Pricing</span>
+        <h2>Free to hang out. Pay for the extras.</h2>
+      </div>
+      <div class="plans">
+        <div class="plan">
+          <div class="nm">Free</div>
+          <div class="pr">£0</div>
+          <ul><li>Unlimited servers, channels and DMs</li><li>Hangouts, games and polls</li><li>Reactions, threads and search</li><li>Themes and profiles</li></ul>
+          <a class="big" href="app.html" data-app>Open Roost</a>
+        </div>
+        <div class="plan hl">
+          <div class="nm">Roost+ <span class="pop">Popular</span></div>
+          <div class="pr">£3.99 <small>/ month</small></div>
+          <ul><li>Unlimited AI catch-ups and replies</li><li>Bigger uploads (100 MB)</li><li>Animated avatar and banner</li><li>Custom emoji everywhere</li></ul>
+          <a class="big primary" href="app.html" data-app>Try it free</a>
+        </div>
+        <div class="plan">
+          <div class="nm">Server Boost</div>
+          <div class="pr">£9.99 <small>/ month</small></div>
+          <ul><li>AI auto-mod for the whole server</li><li>Catch-up for every member</li><li>More custom emoji and soundboard slots</li><li>Vanity invite code</li></ul>
+          <a class="big" href="app.html" data-app>Boost a server</a>
+        </div>
+      </div>
+      <p class="beta">Everything is free while Roost is in beta. Paid plans switch on later.</p>
+    </section>
+
+    <section id="install">
+      <div class="sh">
+        <span class="k">Get the app</span>
+        <h2>On your phone in ten seconds.</h2>
+        <p>Roost installs straight from your browser, no app store needed. Native iPhone and Android apps with voice calls are next.</p>
+      </div>
+      <div class="install">
+        <div class="inst"><h3>iPhone</h3><ol><li>Open Roost in Safari.</li><li>Tap the Share button.</li><li>Tap <b>Add to Home Screen</b>.</li></ol></div>
+        <div class="inst"><h3>Android</h3><ol><li>Open Roost in Chrome.</li><li>Tap the ⋮ menu.</li><li>Tap <b>Install app</b>.</li></ol></div>
+      </div>
+    </section>
+
+    <section id="faq">
+      <div class="sh"><span class="k">Questions</span></div>
+      <div class="faq narrow">
+        <details><summary>Is Roost free?</summary><p>Yes. Everything is free during the beta. Roost+ and Server Boost add AI extras and bigger limits later, but chatting, servers, hangouts and games stay free.</p></details>
+        <details><summary>How do I invite friends?</summary><p>Open your server's menu and tap Invite people. Send them the code; they tap the compass, then "Have a code?".</p></details>
+        <details><summary>Are there voice calls?</summary><p>Hangouts show who's in the room, with a shared soundboard and emotes. Real voice and video arrive with the native phone and desktop apps.</p></details>
+        <details><summary>What can the AI do?</summary><p>@mention Roost AI to ask questions or settle debates, tap Catch-up to summarise a busy channel, translate messages, write trivia questions and help mods with auto-moderation.</p></details>
+        <details id="privacy"><summary>What about privacy?</summary><p>No ads and no selling your data. Block anyone in one tap, and server owners control who can join with invite codes and bans. Don't share passwords or bank details in any chat app, Roost included.</p></details>
+      </div>
+    </section>
+
+    <section class="cta">
+      <h2>Come hang out.</h2>
+      <a class="big primary" href="app.html" data-app>Open Roost</a>
+    </section>
+  </main>
+</div>
+
+<footer>
+  <div class="page">
+    <span>© 2026 Roost</span>
+    <span class="fl"><a href="#features">About</a><a href="#privacy">Privacy</a><a href="#privacy">Terms</a><a href="#faq">Help</a></span>
+  </div>
+</footer>
+
+<script>
+  // Inside Claude, "Open Roost" goes to the live app; anywhere else it opens app.html next to this page.
+  (function () {
+    var LIVE_APP = "https://claude.ai/artifact/LBqKfc7xBzKVjLynBuL65P";
+    if (window.claude && typeof window.claude.use === "function") {
+      document.querySelectorAll("[data-app]").forEach(function (a) { a.href = LIVE_APP; a.target = "_blank"; a.rel = "noopener"; });
+    }
+  })();
+</script>
+</body>
+</html>

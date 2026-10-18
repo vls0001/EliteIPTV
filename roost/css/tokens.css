@@ -1,0 +1,46 @@
+/* Design tokens. Dark is the brand default; people can switch to OLED or Light in Settings. */
+:root {
+  --bg: #09090B;
+  --bg-2: #0C0C0E;
+  --panel: #111113;
+  --panel-2: #18181B;
+  --hover: #1B1B20;
+  --line: #1F1F23;
+  --line-2: #2A2A30;
+  --fg: #FAFAFA;
+  --text: #D4D4D8;
+  --muted: #A1A1AA;
+  --dim: #6B6B75;
+  --accent: #FAFAFA;
+  --accent-ink: #09090B;
+  --mention-bg: rgba(251, 191, 36, .07);
+  --mention-line: #FBBF24;
+  --ok: #4ADE80;
+  --idle: #FBBF24;
+  --dnd: #F87171;
+  --bad: #F87171;
+  --warn: #FBBF24;
+  --info: #60A5FA;
+  --shadow: 0 24px 80px -20px rgba(0, 0, 0, .8);
+  --logo-eye: var(--bg);
+  --sans: "Geist", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --mono: "Geist Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  --fs: 15px;
+  --r: 12px;
+  --rail: 72px;
+  --side: 248px;
+  --panel-w: 280px;
+  color-scheme: dark;
+}
+:root[data-skin="oled"] {
+  --bg: #000000; --bg-2: #000000; --panel: #0A0A0A; --panel-2: #121212; --hover: #141414; --line: #1A1A1A; --line-2: #262626;
+}
+:root[data-skin="light"] {
+  --bg: #FFFFFF; --bg-2: #F7F7F9; --panel: #F2F2F5; --panel-2: #E8E8ED; --hover: #EDEDF1; --line: #E4E4E9; --line-2: #D4D4DB;
+  --fg: #111114; --text: #2A2A31; --muted: #5F5F6B; --dim: #8A8A96;
+  --accent: #111114; --accent-ink: #FFFFFF;
+  --mention-bg: rgba(217, 119, 6, .08); --mention-line: #D97706;
+  --ok: #16A34A; --idle: #D97706; --dnd: #DC2626; --bad: #DC2626; --warn: #B45309; --info: #2563EB;
+  --shadow: 0 24px 60px -20px rgba(0, 0, 0, .25);
+  color-scheme: light;
+}

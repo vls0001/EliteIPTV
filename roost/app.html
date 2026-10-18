@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
+<title>Roost App</title>
+<meta name="description" content="Roost is where your people hang out: servers, channels, DMs, hangouts, games and AI, in one app.">
+<meta name="theme-color" content="#09090B">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="assets/icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="assets/icon.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="css/tokens.css">
+<link rel="stylesheet" href="css/app.css">
+</head>
+<body class="app-body">
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <symbol id="logo" viewBox="0 0 120 120">
+      <path fill="currentColor" d="M58 14c-26 0-46 19-46 44 0 12 5 23 13 31l-7 19 21-8c6 3 12 4 19 4 26 0 46-19 46-44S84 14 58 14z"/>
+      <path fill="currentColor" d="M100 46l18 8-18 8z"/>
+      <circle cx="74" cy="46" r="7" fill="var(--logo-eye, #09090B)"/>
+    </symbol>
+  </defs>
+</svg>
+
+<div class="app" id="app" data-screen="nav">
+  <nav class="rail" id="rail" aria-label="Servers"></nav>
+
+  <aside class="sidebar" id="sidebar" aria-label="Channels">
+    <div class="side-content" id="side-content">
+      <div class="side-hd"><span class="sk line" style="width:60%"></span></div>
+    </div>
+    <div class="voicebar" id="voicebar" hidden></div>
+    <div class="mebar" id="mebar"></div>
+  </aside>
+
+  <main class="main" id="main">
+    <header class="main-hd" id="header"></header>
+    <div class="banner" id="banner" hidden></div>
+    <section class="chat" id="chat" aria-label="Conversation">
+      <div class="feed" id="feed" role="log" aria-live="polite"><div class="feed-inner">
+        <div class="boot"><svg viewBox="0 0 120 120" width="56" height="56" class="logo pulse"><use href="#logo"/></svg><span class="dim">Loading Roost…</span></div>
+      </div></div>
+      <button type="button" class="jump" id="jump" hidden>Jump to latest ↓</button>
+      <div class="typing" id="typing" aria-live="polite"></div>
+      <div class="composer" id="composer"></div>
+    </section>
+    <section class="alt" id="alt" hidden></section>
+  </main>
+
+  <aside class="panel" id="panel" hidden aria-label="Side panel"></aside>
+</div>
+<nav class="tabs" id="tabs" aria-label="Sections"></nav>
+
+<script type="module" src="js/app.js"></script>
+</body>
+</html>
