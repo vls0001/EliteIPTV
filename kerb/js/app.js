@@ -4,6 +4,7 @@
 import { APP } from "./config.js";
 import { h, fill, icon, toast, store } from "./lib/dom.js";
 import { connect } from "./backend/index.js";
+import { loadMap } from "./lib/mapdata.js";
 import { K, startSync, startEngine, onChange } from "./store.js";
 import { mountBook } from "./views/book.js";
 import { mountDriver } from "./views/driver.js";
@@ -45,6 +46,7 @@ function demo() {
 }
 
 async function boot() {
+  await loadMap();
   const api = await connect();
   startSync(api);
   startEngine();

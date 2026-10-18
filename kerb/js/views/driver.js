@@ -51,7 +51,7 @@ export function mountDriver(root) {
       mapBox = h("div", { class: "d-map" });
       fill(shell, h("header", { class: "d-hd" }), mapBox, h("main", { class: "d-main" }), h("nav", { class: "d-tabs" }));
       map = createMap(mapBox, { compact: true });
-      map.setFollow(() => { const x = me(); return x ? Object.assign(posOf(x), { w: 520 }) : null; });
+      map.setFollow(() => { const x = me(); return x ? Object.assign(posOf(x), { w: 1500 }) : null; });
     }
     shell.dataset.tab = tab;
     renderHeader(d); renderTabs(); renderMain(d); updateMap(d);

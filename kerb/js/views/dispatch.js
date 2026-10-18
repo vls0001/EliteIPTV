@@ -47,7 +47,7 @@ export function mountDispatch(root) {
     fill(alertBar, open.map(a => {
       const d = K.drivers[a.driverId];
       return h("div", { class: "k-alert" }, icon("alert", 18), h("b", { text: "SOS from car " + (d ? d.call + " · " + d.name : "?") }), h("span", { class: "grow", text: relTime(a.at) + " · " + (d ? zoneName(zoneOf(posOf(d))) : "") }),
-        h("button", { type: "button", class: "btn sm", onclick: () => { tab = "dispatch"; selDriver = a.driverId; render(); if (d && map) map.lookAt(posOf(d), 380); } }, "Show on map"),
+        h("button", { type: "button", class: "btn sm", onclick: () => { tab = "dispatch"; selDriver = a.driverId; render(); if (d && map) map.lookAt(posOf(d), 1500); } }, "Show on map"),
         d ? h("a", { class: "btn sm", href: "tel:" + d.phone.replace(/\s/g, "") }, icon("phone", 14), "Call") : null,
         h("button", { type: "button", class: "btn sm", onclick: () => resolveAlert(a) }, "Resolve"));
     }));
@@ -108,7 +108,7 @@ export function mountDispatch(root) {
     const late = (j.status === "new" || j.status === "offered") && !isPrebook(j) && waitMin >= 3;
     const sel = selJob === j.id;
     const card = h("div", { class: "jcard" + (sel ? " sel" : "") + (late ? " late" : ""), tabindex: "0" });
-    card.addEventListener("click", e => { if (e.target.closest("button, a, select")) return; selJob = sel ? null : j.id; selDriver = null; renderCols(); if (!sel && map) map.lookAt(j.pickup, 520); });
+    card.addEventListener("click", e => { if (e.target.closest("button, a, select")) return; selJob = sel ? null : j.id; selDriver = null; renderCols(); if (!sel && map) map.lookAt(j.pickup, 2200); });
     card.append(
       h("div", { class: "jcard-hd" },
         h("span", { class: "jtime", text: isPrebook(j) ? new Date(j.when).toLocaleString([], { weekday: "short", hour: "2-digit", minute: "2-digit" }) : j.status === "done" ? fmtTime(j.doneAt || j.createdAt) : "ASAP" }),
@@ -141,7 +141,7 @@ export function mountDispatch(root) {
     const row = d => {
       const j = jobOfDriver(d.id), o = offerFor(d.id);
       const sub = j ? STATUS[j.status].label + " · " + (j.status === "pob" ? j.drop.name : j.pickup.name) : o ? "Offered: " + o.pickup.name : d.status === "break" ? "On break" : d.status === "off" ? "Offline" : zoneName(zoneOf(posOf(d)));
-      return h("button", { type: "button", class: "drow" + (selDriver === d.id ? " sel" : ""), onclick: () => { selDriver = selDriver === d.id ? null : d.id; selJob = null; renderCols(); if (selDriver && map) map.lookAt(posOf(d), 420); } },
+      return h("button", { type: "button", class: "drow" + (selDriver === d.id ? " sel" : ""), onclick: () => { selDriver = selDriver === d.id ? null : d.id; selJob = null; renderCols(); if (selDriver && map) map.lookAt(posOf(d), 1800); } },
         h("span", { class: "callchip " + (o ? "offered" : d.status) , text: d.call }), h("span", { class: "drow-txt" }, h("b", { text: d.name }), h("small", { class: "dim", text: sub })),
         j && j.status !== "arrived" ? h("span", { class: "dim small", text: etaMinutes(d.move) + "m" }) : null);
     };
@@ -208,7 +208,7 @@ export function mountDispatch(root) {
     phone.addEventListener("input", () => {
       const key = phone.value.replace(/\D/g, "");
       const c = key.length >= 10 && K.customers[key];
-      if (c) { name.value = c.name; hint.textContent = "Returning customer"; if (c.lastPickup && !pickup) { pickup = c.lastPickup; pIn.value = c.lastPickup.name; drawQ(); } }
+      if (c) { name.value = c.name; hint.textContent = "Returning customer"; if (c.lastPickup && c.lastPickup.x > 1100 && !pickup) { pickup = c.lastPickup; pIn.value = c.lastPickup.name; drawQ(); } }
       else hint.textContent = key.length >= 10 ? "New customer" : "";
     });
     when.addEventListener("change", drawQ);

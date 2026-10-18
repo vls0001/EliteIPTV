@@ -7,21 +7,22 @@
 //   expenses/{id}                 driver expenses for the tax tracker
 //   msgs/{id}                     dispatch <-> driver messages
 //   alerts/{id}                   driver SOS alerts
-import { PLACES, DEFAULT_SETTINGS } from "../config.js";
-import { quote } from "../lib/geo.js";
+import { DEFAULT_SETTINGS } from "../config.js";
+import { quote, landmark, snap } from "../lib/geo.js";
+import { MAP } from "../lib/mapdata.js";
 
 export const DEMO_DRIVERS = [
-  { id: "d07", call: "7", name: "Dave Holt", car: ["Skoda", "Octavia", "Silver", "PK19 XLD", "saloon"], status: "free", sim: false, x: 260, y: 610 },
-  { id: "d03", call: "3", name: "Mo Patel", car: ["Toyota", "Corolla", "White", "PO20 HNB", "saloon"], status: "free", x: 380, y: 470 },
-  { id: "d12", call: "12", name: "Gary Shaw", car: ["Kia", "Niro", "Blue", "PN21 KTA", "saloon"], status: "free", x: 150, y: 900 },
-  { id: "d15", call: "15", name: "Sue Brennan", car: ["Toyota", "Prius+", "Black", "PL18 WSE", "saloon"], status: "free", x: 520, y: 760 },
-  { id: "d21", call: "21", name: "Imran Ali", car: ["Skoda", "Superb Estate", "Grey", "PO22 FVR", "estate"], status: "free", x: 260, y: 300 },
-  { id: "d04", call: "4", name: "Kev Doyle", car: ["Hyundai", "Ioniq", "White", "PJ70 ZRC", "saloon"], status: "free", x: 660, y: 1050 },
-  { id: "d09", call: "9", name: "Tracy Lund", car: ["Ford", "Mondeo", "Red", "PF17 OLB", "saloon"], status: "break", x: 380, y: 1200 },
-  { id: "d18", call: "18", name: "Jamal Okafor", car: ["Ford", "Galaxy", "Black", "PE68 GHY", "mpv"], status: "free", x: 800, y: 470 },
-  { id: "d25", call: "25", name: "Paul Kerr", car: ["Peugeot", "e-Traveller", "White", "PK23 WAV", "wav"], status: "free", x: 520, y: 1200 },
-  { id: "d30", call: "30", name: "Lee Burns", car: ["Toyota", "Corolla Estate", "Grey", "PN72 LEE", "estate"], status: "free", x: 150, y: 300 },
-  { id: "d33", call: "33", name: "Chris Wade", car: ["Kia", "Ceed", "Blue", "PO16 CWD", "saloon"], status: "off", x: 660, y: 610 },
+  { id: "d07", call: "7", name: "Dave Holt", car: ["Skoda", "Octavia", "Silver", "PK19 XLD", "saloon"], status: "free", sim: false, at: "Winter Gardens" },
+  { id: "d03", call: "3", name: "Mo Patel", car: ["Toyota", "Corolla", "White", "PO20 HNB", "saloon"], status: "free", at: "Blackpool North station" },
+  { id: "d12", call: "12", name: "Gary Shaw", car: ["Kia", "Niro", "Blue", "PN21 KTA", "saloon"], status: "free", at: "Central Pier" },
+  { id: "d15", call: "15", name: "Sue Brennan", car: ["Toyota", "Prius+", "Black", "PL18 WSE", "saloon"], status: "free", at: "Stanley Park" },
+  { id: "d21", call: "21", name: "Imran Ali", car: ["Skoda", "Superb Estate", "Grey", "PO22 FVR", "estate"], status: "free", at: "Gynn Square" },
+  { id: "d04", call: "4", name: "Kev Doyle", car: ["Hyundai", "Ioniq", "White", "PJ70 ZRC", "saloon"], status: "free", at: "Marton" },
+  { id: "d09", call: "9", name: "Tracy Lund", car: ["Ford", "Mondeo", "Red", "PF17 OLB", "saloon"], status: "break", at: "Pleasure Beach" },
+  { id: "d18", call: "18", name: "Jamal Okafor", car: ["Ford", "Galaxy", "Black", "PE68 GHY", "mpv"], status: "free", at: "Victoria Hospital" },
+  { id: "d25", call: "25", name: "Paul Kerr", car: ["Peugeot", "e-Traveller", "White", "PK23 WAV", "wav"], status: "free", at: "Squires Gate station" },
+  { id: "d30", call: "30", name: "Lee Burns", car: ["Toyota", "Corolla Estate", "Grey", "PN72 LEE", "estate"], status: "free", at: "Bispham" },
+  { id: "d33", call: "33", name: "Chris Wade", car: ["Kia", "Ceed", "Blue", "PO16 CWD", "saloon"], status: "off", at: "Layton" },
 ];
 
 const CUSTOMERS = [
@@ -36,12 +37,22 @@ export function weekKey(t = Date.now()) {
   return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
 }
 
+function spotFor(d) {
+  const l = landmark(d.at || "Blackpool Tower") || { x: 1500, y: 5600 };
+  const p = snap({ x: l.x + 80 + Math.random() * 120, y: l.y + (Math.random() * 300 - 150) });
+  return { x: p.x, y: p.y };
+}
+const stop = () => {
+  if (Math.random() < 0.6) { const l = MAP.landmarks[Math.floor(Math.random() * MAP.landmarks.length)]; return { name: l.name, x: l.x, y: l.y }; }
+  const list = MAP.popular.length ? MAP.popular : MAP.places; const p = list[Math.floor(Math.random() * list.length)]; return { name: p.name, x: p.x, y: p.y };
+};
+
 export function driverDoc(d, now = Date.now(), sim = true) {
   const day = 86400000;
   return {
     call: d.call, name: d.name, phone: "07700 9" + String(10000 + parseInt(d.call, 10) * 37).slice(-5),
     car: { make: d.car[0], model: d.car[1], colour: d.car[2], reg: d.car[3], type: d.car[4] },
-    status: d.status, x: d.x, y: d.y, move: null, queuedAt: now - Math.random() * 600000,
+    status: d.status, ...spotFor(d), move: null, queuedAt: now - Math.random() * 600000,
     sim: d.sim === false ? false : sim, rent: d.car[4] === "mpv" || d.car[4] === "wav" ? 140 : 120,
     docs: {
       badge: new Date(now + (d.call === "12" ? 12 : 200) * day).toISOString().slice(0, 10),
@@ -70,14 +81,14 @@ export function seedDemo(put) {
     for (let i = 0; i < count; i++) {
       const start = new Date(now - back * day); start.setHours(7 + Math.floor(Math.random() * 17), Math.floor(Math.random() * 60), 0, 0);
       if (start.getTime() > now - 20 * 60000) continue;
-      const a = PLACES[Math.floor(Math.random() * PLACES.length)];
-      let b = PLACES[Math.floor(Math.random() * PLACES.length)]; if (b === a) b = PLACES[(PLACES.indexOf(a) + 3) % PLACES.length];
+      const a = stop();
+      let b = stop(); for (let k = 0; k < 4 && Math.hypot(a.x - b.x, a.y - b.y) < 900; k++) b = stop();
       const q = quote(a, b, settings, "saloon", start.getTime());
       const drv = drivers[Math.floor(Math.random() * drivers.length)];
       const [phone, name] = CUSTOMERS[Math.floor(Math.random() * CUSTOMERS.length)];
       const t0 = start.getTime();
       put("jobs/h" + (++n), {
-        status: Math.random() < 0.04 ? "cancelled" : "done", pickup: { name: a.name, x: a.x, y: a.y }, drop: { name: b.name, x: b.x, y: b.y },
+        status: Math.random() < 0.04 ? "cancelled" : "done", pickup: a, drop: b,
         when: t0, createdAt: t0, vehicle: drv.car[4], passengers: 1 + Math.floor(Math.random() * 3), customer: { name, phone }, source: sources[Math.floor(Math.random() * sources.length)],
         fare: q.fare, miles: q.miles, pay: Math.random() < 0.55 ? "cash" : "card", driverId: drv.id,
         acceptedAt: t0 + 40000, arrivedAt: t0 + (3 + Math.random() * 8) * 60000, pobAt: t0 + 10 * 60000, doneAt: t0 + (10 + q.mins) * 60000,

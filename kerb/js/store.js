@@ -1,7 +1,8 @@
 // Shared state, live data and every job action. All three apps (customer, driver, dispatch) use this.
 import { APP, DEFAULT_SETTINGS, VEHICLES } from "./config.js";
 import { toast } from "./lib/dom.js";
-import { posOf, makeMove, zoneOf, dist, routeMiles, quote } from "./lib/geo.js";
+import { posOf, makeMove, zoneOf, dist, quote, roughMinutes, randomSpot } from "./lib/geo.js";
+import { MAP } from "./lib/mapdata.js";
 import { weekKey } from "./backend/seed.js";
 
 export const K = {
@@ -63,16 +64,15 @@ export function bestDriver(job, exclude = []) {
   if (!free.length) return null;
   if (K.settings.mode === "queue") {
     const zone = zoneOf(job.pickup);
-    const q = free.filter(d => zoneOf(posOf(d)) === zone).sort((a, b) => (a.queuedAt || 0) - (b.queuedAt || 0));
+    const q = free.filter(d => zoneOf(posOf(d)) === zone).sort((a, b) => (K.api.mode === "demo" ? (!a.sim ? 0 : 1) - (!b.sim ? 0 : 1) : 0) || (a.queuedAt || 0) - (b.queuedAt || 0));
     if (q.length) return q[0];
   }
-  return free.sort((a, b) => routeMiles(posOf(a), job.pickup) - routeMiles(posOf(b), job.pickup))[0];
+  return free.sort((a, b) => dist(posOf(a), job.pickup) - dist(posOf(b), job.pickup))[0];
 }
 export function nearestEta(pickup, vehicle = "saloon") {
   const free = driversList().filter(d => d.status === "free" && !jobOfDriver(d.id) && fits(d, vehicle));
   if (!free.length) return null;
-  const m = Math.min(...free.map(d => routeMiles(posOf(d), pickup)));
-  return Math.max(2, Math.round(m / APP.realMph * 60) + 1);
+  return Math.max(2, Math.min(...free.map(d => roughMinutes(posOf(d), pickup))) + 1);
 }
 
 async function w(fn, what) {
@@ -174,7 +174,7 @@ export { weekKey };
 // Runs in one open page at a time (a lease), assigns jobs, expires offers, and drives demo cars.
 // In production this belongs on a server; here any open page can take the job.
 const holder = Math.random().toString(36).slice(2);
-let leader = false, lastLease = 0, lastBooking = Date.now() - 18000, inflight = new Map();
+let leader = false, lastLease = 0, lastBooking = Date.now() - 14000, inflight = new Map();
 const busy = (key, ms = 4000) => { const t = inflight.get(key); if (t && Date.now() - t < ms) return true; inflight.set(key, Date.now()); return false; };
 
 export function startEngine() {
@@ -188,13 +188,14 @@ async function tick() {
   if (!leader) return;
   const S = K.settings;
 
+  const offeredNow = new Set(K.jobs.filter(j => j.status === "offered" && j.offer).map(j => j.offer.driverId));
   for (const j of activeJobs()) {
     // offers that ran out go back to the pool
     if (j.status === "offered" && j.offer && j.offer.until < now && !busy("exp" + j.id)) decline(j, j.offer.driverId);
     // auto-dispatch
     if (j.status === "new" && S.autoDispatch && j.when <= now + 10 * 60000 && !busy("off" + j.id, 3000)) {
-      const d = bestDriver(j, j.declined || []);
-      if (d) offer(j, d.id);
+      const d = bestDriver(j, [...(j.declined || []), ...offeredNow]);
+      if (d) { offeredNow.add(d.id); offer(j, d.id); }
       else if ((j.declined || []).length && !bestDriver(j)) { /* everyone declined: leave for the dispatcher */ }
       else if ((j.declined || []).length) up("jobs/" + j.id, { declined: [] }).catch(() => {});
     }
@@ -216,30 +217,33 @@ async function tick() {
       else if (j.status === "arrived" && now - (j.arrivedAt || now) > 4000 && !busy("pob" + j.id)) pob(j, d);
       else if (j.status === "pob" && !moving && now - (j.pobAt || now) > 1500 && !busy("done" + j.id)) complete(j, d, j.fare, Math.random() < 0.55 ? "cash" : "card");
     }
-    if (S.autoBookings && now - lastBooking > 26000 + Math.random() * 20000) { lastBooking = now; randomBooking(); }
+    if (S.autoBookings && now - lastBooking > 18000 + Math.random() * 12000) { lastBooking = now; randomBooking(); }
   }
 }
 
 function wander(d) {
   const p = posOf(d);
-  const zones = { north: [[260, 300], [520, 120]], central: [[150, 600], [380, 470]], east: [[660, 610], [800, 760]], south: [[260, 1050], [520, 1200]], airport: [[420, 1300], [660, 1300]] };
-  const opts = zones[zoneOf(p)] || [[380, 610]];
-  const [x, y] = opts[Math.floor(Math.random() * opts.length)];
-  up("drivers/" + d.id, { move: makeMove(p, { x: x + (Math.random() * 60 - 30), y }, Date.now()) }).catch(() => {});
+  const to = randomSpot(zoneOf(p));
+  up("drivers/" + d.id, { move: makeMove(p, to, Date.now()) }).catch(() => {});
+}
+
+function randomStop() {
+  // mostly landmarks, sometimes a real pub, hotel, shop or street
+  if (Math.random() < 0.55) { const l = MAP.landmarks[Math.floor(Math.random() * MAP.landmarks.length)]; return { name: l.name, x: l.x, y: l.y }; }
+  const list = MAP.popular.length ? MAP.popular : MAP.places; const p = list[Math.floor(Math.random() * list.length)]; return { name: p.name, x: p.x, y: p.y };
 }
 
 async function randomBooking() {
-  const { PLACES } = await import("./config.js");
   const names = [["Jean Fletcher", "07700 900456"], ["Ryan Cooper", "07700 900789"], ["Linda Hart", "07700 900987"], ["Mick Rowe", "07700 900111"], ["Sophie Ward", "07700 900222"], ["Tom Walsh", "07700 900654"]];
-  let a = PLACES[Math.floor(Math.random() * PLACES.length)];
+  let a = randomStop();
   // half the time, start the job near a free car that a person is driving, so the demo driver gets work
   const human = driversList().find(d => !d.sim && d.status === "free" && !jobOfDriver(d.id) && !offerFor(d.id));
-  if (human && Math.random() < 0.55) { const z = zoneOf(posOf(human)); const near = PLACES.filter(p => zoneOf(p) === z); if (near.length) a = near[Math.floor(Math.random() * near.length)]; }
-  let b = PLACES[Math.floor(Math.random() * PLACES.length)]; if (b === a) b = PLACES[(PLACES.indexOf(a) + 5) % PLACES.length];
+  if (human && Math.random() < 0.8) { const z = zoneOf(posOf(human)); for (let i = 0; i < 20; i++) { const c = randomStop(); if (zoneOf(c) === z) { a = c; break; } } }
+  let b = randomStop(); for (let i = 0; i < 5 && dist(a, b) < 900; i++) b = randomStop();
   const [name, phone] = names[Math.floor(Math.random() * names.length)];
   const src = ["phone", "phone", "app", "web", "whatsapp"][Math.floor(Math.random() * 5)];
   const veh = Math.random() < 0.1 ? "mpv" : Math.random() < 0.05 ? "wav" : "saloon";
-  createJob({ pickup: { name: a.name, x: a.x, y: a.y }, drop: { name: b.name, x: b.x, y: b.y }, customer: { name, phone }, source: src, vehicle: veh, passengers: 1 + Math.floor(Math.random() * 3), when: Math.random() < 0.12 ? Date.now() + (30 + Math.random() * 90) * 60000 : Date.now() });
+  createJob({ pickup: a, drop: b, customer: { name, phone }, source: src, vehicle: veh, passengers: 1 + Math.floor(Math.random() * 3), when: Math.random() < 0.12 ? Date.now() + (30 + Math.random() * 90) * 60000 : Date.now() });
 }
 
 // ---------- earnings ----------

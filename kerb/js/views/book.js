@@ -1,14 +1,16 @@
 // Customer app: book a taxi, track it live, rate the driver, see past trips, or book by message.
 import { APP, VEHICLES, STATUS } from "../config.js";
 import { h, fill, icon, toast, store, stamp, fmtTime, confirmBox } from "../lib/dom.js";
-import { searchPlaces, findPlace, quote, money, posOf, etaMinutes, randomSpot, zoneOf } from "../lib/geo.js";
+import { searchPlaces, findPlace, quote, money, posOf, etaMinutes, randomSpot, zoneOf, landmark } from "../lib/geo.js";
+import { MAP } from "../lib/mapdata.js";
+const validPick = p => p && p.x >= 0 && p.x <= MAP.w && p.y >= 0 && p.y <= MAP.h && p.x > 1100 ? p : null;
 import { createMap } from "../lib/map.js";
 import { K, onChange, createJob, cancel, rate, nearestEta, carLabel, driversList } from "../store.js";
 
 export function mountBook(root) {
   let profile = store.get("customer", { name: "Alex Morgan", phone: "07700 900123" });
   let screen = "home";
-  let draft = { pickup: store.get("lastPickup", { name: "Blackpool Tower", x: 150, y: 600 }), drop: null, vehicle: "saloon", when: null, passengers: 1, notes: "" };
+  let draft = { pickup: validPick(store.get("lastPickup", null)) || landmark("Blackpool Tower"), drop: null, vehicle: "saloon", when: null, passengers: 1, notes: "" };
   let watching = store.get("watchJob", null);
   let rated = new Set();
 
@@ -225,7 +227,7 @@ export function mountBook(root) {
     if (pendingQuote && /^(n|no|nah|cancel)\b/i.test(text)) { pendingQuote = null; push("bot", "No problem. Where would you like to go instead?"); return; }
     const parsed = await parse(text);
     if (!parsed.drop) { push("bot", "Where are you heading? You can say a place like \"Pleasure Beach\" or an address like \"23 Church Street\"."); return; }
-    const pickup = parsed.pickup || draft.pickup || { name: "Blackpool Tower", x: 150, y: 600 };
+    const pickup = parsed.pickup || draft.pickup || landmark("Blackpool Tower");
     const q = quote(pickup, parsed.drop, K.settings, parsed.vehicle, parsed.when || Date.now());
     pendingQuote = { pickup, drop: parsed.drop, when: parsed.when || Date.now(), passengers: parsed.passengers, vehicle: parsed.vehicle };
     const eta = nearestEta(pickup, parsed.vehicle);
@@ -278,15 +280,15 @@ export function mountBook(root) {
     if (j && j.driverId && K.drivers[j.driverId]) {
       const d = K.drivers[j.driverId];
       map.update({ drivers: [d], jobs: [j], me: d.id, focus: j.id, onlyRoute: d.id });
-      map.setFollow(() => Object.assign(posOf(d), { w: 520 }));
+      map.setFollow(() => Object.assign(posOf(d), { w: 1600 }));
     } else if (j) {
       map.update({ drivers: driversList().filter(d => d.status === "free"), jobs: [j], focus: j.id });
-      map.setFollow(null); map.lookAt(j.pickup, 700);
+      map.setFollow(null); map.lookAt(j.pickup, 2400);
     } else {
       const near = driversList().filter(d => d.status === "free");
-      map.update({ drivers: near, jobs: draft.drop ? [{ id: "draft", status: "new", pickup: draft.pickup || { x: 150, y: 600 }, drop: draft.drop }] : [], focus: draft.drop ? "draft" : null });
+      map.update({ drivers: near, jobs: draft.drop && draft.pickup ? [{ id: "draft", status: "new", pickup: draft.pickup, drop: draft.drop }] : [], focus: draft.drop ? "draft" : null });
       map.setFollow(null);
-      if (draft.pickup) map.lookAt(draft.pickup, 760);
+      if (draft.pickup && draft.drop) { const c = { x: (draft.pickup.x + draft.drop.x) / 2, y: (draft.pickup.y + draft.drop.y) / 2 }; map.lookAt(c, Math.max(2000, Math.hypot(draft.pickup.x - draft.drop.x, draft.pickup.y - draft.drop.y) * 1.5)); } else if (draft.pickup) map.lookAt(draft.pickup, 2600);
     }
   }
 
