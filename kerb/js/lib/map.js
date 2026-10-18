@@ -41,6 +41,7 @@ function style() {
       landmarks: { type: "geojson", data: g.landmarks }, places: { type: "geojson", data: g.places },
       buildings: { type: "geojson", data: { type: "FeatureCollection", features: [] }, tolerance: 0.2 },
       routes: { type: "geojson", data: { type: "FeatureCollection", features: [] } },
+      heat: { type: "geojson", data: { type: "FeatureCollection", features: [] } },
     },
     layers: [
       { id: "sea", type: "background", paint: { "background-color": "#0B1420" } },
@@ -60,6 +61,11 @@ function style() {
       { id: "road-major", type: "line", source: "roads", filter: roadCls(["tertiary", "secondary", "primary", "trunk", "motorway"]),
         layout: { "line-cap": "round", "line-join": "round" },
         paint: { "line-color": ["match", ["get", "c"], "motorway", "#8A6A22", "trunk", "#6E5A26", "primary", "#4C4F57", "secondary", "#43464E", "#3A3D44"], "line-width": W(11, 1, 18, 20) } },
+      { id: "heat", type: "heatmap", source: "heat", maxzoom: 17, paint: {
+        "heatmap-weight": ["get", "w"], "heatmap-intensity": ["interpolate", ["linear"], ["zoom"], 11, 0.6, 16, 1.6],
+        "heatmap-radius": ["interpolate", ["linear"], ["zoom"], 11, 14, 16, 46],
+        "heatmap-opacity": ["interpolate", ["linear"], ["zoom"], 15, 0.7, 17, 0],
+        "heatmap-color": ["interpolate", ["linear"], ["heatmap-density"], 0, "rgba(0,0,0,0)", 0.2, "rgba(120,60,10,0.35)", 0.45, "rgba(210,110,20,0.55)", 0.7, "rgba(245,170,40,0.7)", 1, "rgba(255,230,140,0.85)"] } },
       { id: "routes-other", type: "line", source: "routes", filter: ["!=", ["get", "mine"], 1], layout: { "line-cap": "round", "line-join": "round" },
         paint: { "line-color": "#FFFFFF", "line-opacity": 0.35, "line-width": 2.5, "line-dasharray": [1, 2.5] } },
       { id: "routes-mine-glow", type: "line", source: "routes", filter: ["==", ["get", "mine"], 1], layout: { "line-cap": "round", "line-join": "round" },
@@ -95,6 +101,8 @@ export function createMap(container, opts = {}) {
   const wrap = document.createElement("div");
   wrap.className = "ml-wrap" + (opts.compact ? " compact" : "");
   container.append(wrap);
+  let heatData = null;
+  const setHeatNow = () => { if (loaded && map.getSource("heat")) map.getSource("heat").setData({ type: "FeatureCollection", features: (heatData || []).map(p => ({ type: "Feature", properties: { w: p.w || 1 }, geometry: { type: "Point", coordinates: ll(p) } })) }); };
   let map, loaded = false, alive = true, follow = opts.follow || null, lastRoutesKey = "";
   let data = { drivers: [], jobs: [], me: null, focus: null, selected: null, onlyRoute: null };
   const cars = new Map(), pins = new Map(), angles = new Map();
@@ -115,6 +123,7 @@ export function createMap(container, opts = {}) {
     map.once("load", () => wrap.querySelectorAll(".maplibregl-compact-show").forEach(e => e.classList.remove("maplibregl-compact-show")));
     map.on("load", () => {
       loaded = true;
+      if (heatData) setHeatNow();
       pushRoutes(true);
       if (!opts.noBuildings) {
         bldPromise = bldPromise || buildingsGeojson();
@@ -232,6 +241,7 @@ export function createMap(container, opts = {}) {
     setFollow(fn) { follow = fn; },
     center() { if (!map) return null; const c = map.getCenter(); return toXY(c.lat, c.lng); },
     onMoveEnd(cb) { moveEnd.push(cb); },
+    setHeat(points) { heatData = points; setHeatNow(); },
     tilt(on) { if (map) map.easeTo({ pitch: on ? 55 : 0, bearing: on ? -18 : 0, duration: 700 }); },
     destroy() { alive = false; ro.disconnect(); cars.forEach(m => m.marker.remove()); pins.forEach(m => m.marker.remove()); if (map) map.remove(); wrap.remove(); },
   };

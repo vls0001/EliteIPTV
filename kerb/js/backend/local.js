@@ -2,7 +2,7 @@
 // Used outside Claude (e.g. GitHub Pages) so the demo always works.
 import { seedDemo } from "./seed.js";
 
-const KEY = "kerb.demo.v2"; // v2: real map coordinates
+const KEY = "kerb.demo.v3"; // v3: accounts, contracts, events
 
 export function createLocalBackend() {
   const docs = new Map();

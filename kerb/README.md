@@ -38,7 +38,14 @@ kerb/
       artifact.js         Live backend (Claude shared database)
       local.js            Demo backend (this browser only)
       seed.js             Demo firm, drivers, two weeks of jobs; documents the data model
+    features/
+      directions.js       Turn-by-turn steps from a route and street names, plus Google Maps / Waze links
+      planner.js          Demand forecast per hour, event uplift, hot spots
+      gps.js              Phone GPS for drivers (needs the app on its own web address)
     views/
+      office.js           Accounts and regular runs, invoices, quality (ratings, complaints, lost property), busy-night planner
+      portal.js           Account booking page (#account-nhs): NHS wards, schools, hotels
+      share.js            Shared live trip page (#t-<job id>)
       book.js             Customer app: book, live tracking, rating, trips, book by message
       driver.js           Driver app: offers, job steps, cash/card, earnings, tax, documents, messages, SOS
       dispatch.js         Dispatch console and office: map, jobs, queues, phone bookings, drivers, rent, reports, settings
@@ -63,6 +70,9 @@ change the box in `tools/build_map.py`, and rebuild.
 ## How it works
 
 - Customers type a postcode, house number and street, place name, or tap "Choose on map" and drag the map under a pin.
+- Texts: every customer text is written to `texts`. With no SMS provider set they're logged (shown in Settings); a small server that watches `texts` and calls Twilio or similar sends them for real.
+- Caller ID: the phone system writes ringing calls to `calls` (`{number, at, status: "ringing"}`) and the pop-up appears. The demo rings now and then.
+- Back-to-back: if no car is free, a car within 5 minutes of drop-off can be offered the next job. It shows as "Next" on the board.
 - Jobs go `new → offered → accepted → arrived → pob (on board) → done` (or cancelled / no show).
 - Car positions are stored as a route plus start time, so every screen animates cars without constant writes.
 - The dispatch engine runs in whichever open page holds a short lock. In production it moves to a small server.

@@ -6,6 +6,8 @@ export const APP = {
   demoFirm: "Seaside Cars",
   speedup: 30,          // demo cars move 30x real speed; shown ETAs are real-world minutes
   offerSeconds: 20,
+  // where the app lives inside Claude; used for trip-share links
+  liveUrl: "https://claude.ai/artifact/KzXimsPWuop1ca4mtLKLNR",
 };
 
 export const DEFAULT_SETTINGS = {
@@ -20,13 +22,19 @@ export const DEFAULT_SETTINGS = {
   mode: "queue",      // "queue" (first in zone queue) or "nearest"
   demoDrivers: true,
   autoBookings: true,
+  stacking: true,     // offer the next job to a car that's about to drop off
+  texts: true,        // send text updates to customers
+  smsProvider: "",    // e.g. "twilio" once connected; empty = texts are logged, not sent
+  phoneSystem: "",    // e.g. "gamma" once incoming calls are connected
+  demoCalls: true,    // demo: pretend phone calls ring in
+  officePhone: "01253 000000",
 };
 
 export const VEHICLES = {
-  saloon: { label: "Saloon", seats: 4, extra: 0, icon: "🚗" },
-  estate: { label: "Estate", seats: 4, extra: 1, icon: "🚙", note: "Extra luggage" },
-  mpv: { label: "6–8 seater", seats: 8, extra: 4, icon: "🚐" },
-  wav: { label: "Wheelchair", seats: 5, extra: 0, icon: "♿" },
+  saloon: { label: "Saloon", seats: 4, extra: 0 },
+  estate: { label: "Estate", seats: 4, extra: 1, note: "Extra luggage" },
+  mpv: { label: "6–8 seater", seats: 8, extra: 4 },
+  wav: { label: "Wheelchair", seats: 5, extra: 0 },
 };
 
 export const STATUS = {
@@ -40,7 +48,12 @@ export const STATUS = {
   noshow: { label: "No show", tone: "bad" },
 };
 
-export const SOURCES = { app: "App", phone: "Phone", web: "Website", whatsapp: "WhatsApp", rank: "Rank" };
+export const SOURCES = { app: "App", phone: "Phone", web: "Website", whatsapp: "WhatsApp", rank: "Rank", account: "Account", contract: "Contract" };
+
+export const ACCOUNT_KINDS = { nhs: "NHS", business: "Business", school: "School", care: "Care home", council: "Council" };
+export const MOBILITY = { walks: "Walks unaided", help: "Needs a hand", chair: "Wheelchair (stays in chair)", folding: "Folding wheelchair" };
+export const COMPLAINT_KINDS = { driver: "Driver's manner", driving: "Driving", fare: "Overcharged", car: "Car condition", late: "Late or didn't turn up", route: "Wrong or long route", other: "Something else" };
+export const LOST_STATUS = { reported: "Reported", driver: "With driver", office: "At the office", returned: "Returned", disposed: "Not claimed" };
 
 // ---------- zones (metres on the real map: x east, y south from 53.872N, 3.075W) ----------
 export const ZONES = [

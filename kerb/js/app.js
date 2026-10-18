@@ -9,6 +9,8 @@ import { K, startSync, startEngine, onChange } from "./store.js";
 import { mountBook } from "./views/book.js";
 import { mountDriver } from "./views/driver.js";
 import { mountDispatch } from "./views/dispatch.js";
+import { mountShare } from "./views/share.js";
+import { mountPortal } from "./views/portal.js";
 
 const root = document.getElementById("root");
 const view = () => (location.hash.replace("#", "") || "home").split("-")[0];
@@ -26,7 +28,8 @@ function home() {
       big("#demo", "play", "Watch the live demo", "Customer, dispatcher and driver side by side"),
       big("#book", "mapPin", "Book a taxi", "Customer app"),
       big("#driver", "car", "Driver app", "Jobs, earnings, tax and documents"),
-      big("#dispatch", "list", "Dispatch & office", "Live map, bookings, drivers, rent, reports")),
+      big("#dispatch", "list", "Dispatch & office", "Live map, bookings, drivers, rent, reports"),
+      big("#account-nhs", "cross", "Account booking", "For NHS wards, schools and hotels to book rides")),
     h("p", { class: "launch-note dim", text: K.api.mode === "demo" ? "Demo mode: " + K.settings.firm + " is a pretend Blackpool firm. Cars move at " + APP.speedup + "× speed and data stays in this browser." : "Connected live to " + K.settings.firm + ". Everyone with access sees the same jobs." })));
 }
 
@@ -59,6 +62,8 @@ async function boot() {
   else if (v === "driver") { document.body.dataset.view = "phone"; mountDriver(root); }
   else if (v === "dispatch") { document.body.dataset.view = "console"; mountDispatch(root); }
   else if (v === "demo") demo();
+  else if (v === "t") { document.body.dataset.view = "phone"; mountShare(root, location.hash.slice(3)); }
+  else if (v === "account") { document.body.dataset.view = "portal"; mountPortal(root, location.hash.split("-")[1] || ""); }
   else { home(); onChange(() => { if (view() === "home") { const n = root.querySelector(".launch-note"); if (n && K.settingsLoaded) n.textContent = n.textContent.replace(/^(Demo mode: |Connected live to )[^.]+/, m => m.startsWith("Demo") ? "Demo mode: " + K.settings.firm : "Connected live to " + K.settings.firm); } }); }
 }
 

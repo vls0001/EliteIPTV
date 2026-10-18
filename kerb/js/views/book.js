@@ -1,11 +1,11 @@
 // Customer app: book a taxi, track it live, rate the driver, see past trips, or book by message.
-import { APP, VEHICLES, STATUS } from "../config.js";
-import { h, fill, icon, toast, store, stamp, fmtTime, confirmBox } from "../lib/dom.js";
-import { searchPlaces, findPlace, quote, money, posOf, etaMinutes, randomSpot, zoneOf, landmark } from "../lib/geo.js";
+import { APP, VEHICLES, STATUS, COMPLAINT_KINDS } from "../config.js";
+import { h, fill, icon, toast, store, stamp, fmtTime, confirmBox, modal, copyText } from "../lib/dom.js";
+import { searchPlaces, findPlace, quote, money, posOf, etaMinutes, randomSpot, zoneOf, landmark, driveMinutes } from "../lib/geo.js";
 import { MAP, describe } from "../lib/mapdata.js";
 const validPick = p => p && p.x >= 0 && p.x <= MAP.w && p.y >= 0 && p.y <= MAP.h && p.x > 1100 ? p : null;
 import { createMap } from "../lib/map.js";
-import { K, onChange, createJob, cancel, rate, nearestEta, carLabel, driversList } from "../store.js";
+import { K, onChange, createJob, cancel, rate, nearestEta, carLabel, driversList, etaTo, jobOfDriver, shareLink, savePlaces, addComplaint, addLost, sendMsg } from "../store.js";
 
 function vehicleIcon(k) {
   const paths = {
@@ -25,6 +25,10 @@ export function mountBook(root) {
   let screen = "home";
   let draft = { pickup: validPick(store.get("lastPickup", null)) || landmark("Blackpool Tower"), drop: null, vehicle: "saloon", when: null, passengers: 1, notes: "" };
   let watching = store.get("watchJob", null);
+  let forOther = store.get("forOther", null); // { name, phone } when booking for someone else
+  const custKey = () => String(profile.phone || "").replace(/\D/g, "");
+  const savedPlaces = () => { const c = K.customers[custKey()]; return (c && c.places) || store.get("places", []); };
+  const setPlaces = list => { store.set("places", list); savePlaces(profile.phone, list); };
   let rated = new Set();
 
   const mapBox = h("div", { class: "b-map" });
@@ -66,6 +70,12 @@ export function mountBook(root) {
     const nameIn = h("input", { class: "b-input sm", id: "b-name", value: profile.name, placeholder: "Your name", autocomplete: "name" });
     const phoneIn = h("input", { class: "b-input sm", id: "b-phone", value: profile.phone, placeholder: "Mobile number", inputmode: "tel", autocomplete: "tel" });
     const notes = h("input", { class: "b-input sm", id: "b-notes", value: draft.notes, placeholder: "Notes for the driver (optional)", maxlength: 120 });
+    const otherTg = h("input", { type: "checkbox", class: "tg", id: "b-other" }); otherTg.checked = !!forOther;
+    const oName = h("input", { class: "b-input sm", id: "b-oname", value: forOther ? forOther.name : "", placeholder: "Passenger's name", autocomplete: "off" });
+    const oPhone = h("input", { class: "b-input sm", id: "b-ophone", value: forOther ? forOther.phone : "", placeholder: "Passenger's mobile (they get the texts)", inputmode: "tel", autocomplete: "off" });
+    const oBox = h("div", { class: "b-other", hidden: !forOther }, oName, oPhone, h("small", { class: "dim", text: "The driver sees their name and calls them. You still get the updates." }));
+    otherTg.addEventListener("change", () => { oBox.hidden = !otherTg.checked; forOther = otherTg.checked ? { name: oName.value, phone: oPhone.value } : null; store.set("forOther", forOther); if (otherTg.checked) oName.focus(); });
+    [oName, oPhone].forEach(i => i.addEventListener("input", () => { forOther = { name: oName.value, phone: oPhone.value }; store.set("forOther", forOther); }));
     const bookBtn = h("button", { type: "button", class: "b-book" }, "Book");
     let field = null;
 
@@ -97,7 +107,12 @@ export function mountBook(root) {
     notes.addEventListener("input", () => { draft.notes = notes.value; });
     bookBtn.addEventListener("click", book);
 
-    const recents = [...new Map(myJobs().filter(j => j.drop).map(j => [j.drop.name, j.drop])).values()].slice(0, 4);
+    const recents = [...new Map(myJobs().filter(j => j.drop).map(j => [j.drop.name, j.drop])).values()].filter(r => !savedPlaces().some(p => p.name === r.name)).slice(0, 4);
+    const places = savedPlaces();
+    const placeChip = (label, ic) => {
+      const p = places.find(x => x.label === label);
+      return h("button", { type: "button", class: "b-chip saved" + (p ? "" : " add"), onclick: () => { if (p) { field = "drop"; pick(p); } else savePlace(label); } }, icon(ic, 13), p ? label : "Add " + label.toLowerCase());
+    };
     fill(sheet,
       h("div", { class: "b-grab" }),
       h("h2", { class: "b-hello", text: "Where to" + (profile.name ? ", " + profile.name.split(" ")[0] : "") + "?" }),
@@ -106,18 +121,46 @@ export function mountBook(root) {
         h("div", { class: "b-fields" }, pickIn, dropIn),
         h("button", { type: "button", class: "b-swap", "aria-label": "Swap pick-up and destination", onclick: () => { [draft.pickup, draft.drop] = [draft.drop, draft.pickup]; pickIn.value = draft.pickup ? draft.pickup.name : ""; dropIn.value = draft.drop ? draft.drop.name : ""; updateQuote(); } }, icon("swap", 18))),
       sugg,
-      recents.length ? h("div", { class: "b-chips" }, recents.map(r => h("button", { type: "button", class: "b-chip", onclick: () => { field = "drop"; pick(r); } }, icon("clock", 13), r.name))) : null,
+      h("div", { class: "b-chips" }, placeChip("Home", "home"), placeChip("Work", "briefcase"),
+        places.filter(p => p.label !== "Home" && p.label !== "Work").map(p => h("button", { type: "button", class: "b-chip saved", onclick: () => { field = "drop"; pick(p); } }, icon("star", 13), p.label)),
+        h("button", { type: "button", class: "b-chip ghost", "aria-label": "Save a place", onclick: () => savePlace("") }, icon("plus", 13), "Save"),
+        recents.map(r => h("button", { type: "button", class: "b-chip", onclick: () => { field = "drop"; pick(r); } }, icon("clock", 13), r.name))),
       vehicles,
       h("div", { class: "b-when" },
         h("button", { type: "button", class: "b-chip" + (!draft.when ? " on" : ""), onclick: e => { draft.when = null; later.hidden = true; e.currentTarget.classList.add("on"); e.currentTarget.nextSibling.classList.remove("on"); updateQuote(); } }, "Now"),
         h("button", { type: "button", class: "b-chip" + (draft.when ? " on" : ""), onclick: e => { later.hidden = false; e.currentTarget.classList.add("on"); e.currentTarget.previousSibling.classList.remove("on"); if (!later.value) { const t = new Date(Date.now() + 3600000); t.setMinutes(0); later.value = new Date(t - t.getTimezoneOffset() * 60000).toISOString().slice(0, 16); draft.when = t.getTime(); updateQuote(); } later.focus(); } }, "Later"),
         later),
-      h("details", { class: "b-more" }, h("summary", { text: "Your details and notes" }), h("div", { class: "b-more-body" }, nameIn, phoneIn, notes,
+      h("details", { class: "b-more", open: !!forOther }, h("summary", { text: forOther ? "For " + (forOther.name || "someone else") + " · details and notes" : "Your details and notes" }), h("div", { class: "b-more-body" }, nameIn, phoneIn, notes,
+        h("label", { class: "toggle-row", for: "b-other" }, h("span", { class: "grow" }, h("b", { text: "Booking for someone else" }), h("small", { class: "dim", text: "A parent, a friend, a guest" })), otherTg), oBox,
         h("div", { class: "b-pax" }, h("span", { text: "Passengers" }), h("button", { type: "button", class: "b-step", onclick: () => setPax(-1) }, "−"), h("b", { id: "b-paxn", text: draft.passengers }), h("button", { type: "button", class: "b-step", onclick: () => setPax(1) }, "+")))),
       summary, bookBtn);
     homeEls = { vehicles, summary, bookBtn, nameIn, phoneIn };
     updateQuote();
   }
+  // save Home, Work or any named place
+  function savePlace(label) {
+    const lab = h("input", { class: "input", id: "sp-label", value: label, placeholder: "Name, e.g. Mum's", maxlength: 24 });
+    const q = h("input", { class: "input", id: "sp-q", placeholder: "Address, postcode or place", autocomplete: "off" });
+    const list = h("div", { class: "sp-list" });
+    let chosen = null;
+    const draw = () => fill(list, searchPlaces(q.value, 6).map(p => h("button", { type: "button", class: "b-sugg-item" + (chosen && chosen.name === p.name ? " on" : ""), onclick: () => { chosen = { name: p.name, x: p.x, y: p.y }; q.value = p.name; draw(); } }, icon("mapPin", 16), h("span", {}, h("b", { text: p.name })))));
+    q.addEventListener("input", () => { chosen = null; draw(); });
+    const cur = savedPlaces();
+    const m = modal({ title: label ? "Set " + label.toLowerCase() : "Save a place", body: h("div", { class: "form" },
+      label ? null : h("label", { class: "field", for: "sp-label" }, h("span", { text: "Name" }), lab),
+      h("label", { class: "field", for: "sp-q" }, h("span", { text: "Where" }), q), list,
+      cur.length ? h("div", { class: "sp-saved" }, h("small", { class: "dim", text: "Saved" }), cur.map(p => h("div", { class: "sp-row" }, h("b", { text: p.label }), h("span", { class: "dim grow ell", text: p.name }), h("button", { type: "button", class: "ibtn sm", "aria-label": "Remove " + p.label, onclick: () => { setPlaces(savedPlaces().filter(x => x.label !== p.label)); m.close(); render(); } }, icon("x", 14))))) : null),
+      actions: [h("button", { type: "button", class: "btn", onclick: () => m.close() }, "Cancel"), h("button", { type: "button", class: "btn primary", onclick: () => {
+        const name = (label || lab.value).trim();
+        if (!name) { toast("Give the place a name."); return; }
+        if (!chosen) { const first = searchPlaces(q.value, 1)[0]; if (first) chosen = { name: first.name, x: first.x, y: first.y }; }
+        if (!chosen) { toast("Pick an address from the list."); return; }
+        setPlaces([...savedPlaces().filter(x => x.label !== name), Object.assign({ label: name }, chosen)]);
+        m.close(); toast(name + " saved.", "ok"); render();
+      } }, "Save")] });
+    setTimeout(() => q.focus(), 40);
+  }
+
   function setPax(dv) {
     draft.passengers = Math.max(1, Math.min(8, draft.passengers + dv));
     const n = document.getElementById("b-paxn"); if (n) n.textContent = draft.passengers;
@@ -151,7 +194,12 @@ export function mountBook(root) {
     profile = { name, phone }; store.set("customer", profile);
     if (draft.when && draft.when < Date.now() + 10 * 60000) draft.when = null;
     homeEls.bookBtn.disabled = true;
-    const id = await createJob({ pickup: draft.pickup, drop: draft.drop, vehicle: draft.vehicle, passengers: draft.passengers, notes: draft.notes, when: draft.when || Date.now(), customer: profile, source: "app" });
+    let passenger = null;
+    if (forOther) {
+      if (!forOther.name.trim()) { toast("Add the passenger's name, or switch off \"Booking for someone else\"."); const d = sheet.querySelector(".b-more"); if (d) d.open = true; return; }
+      passenger = { name: forOther.name.trim(), phone: forOther.phone.trim() };
+    }
+    const id = await createJob({ pickup: draft.pickup, drop: draft.drop, vehicle: draft.vehicle, passengers: draft.passengers, notes: draft.notes, when: draft.when || Date.now(), customer: profile, passenger, source: "app" });
     if (!id) { homeEls.bookBtn.disabled = false; return; }
     watching = id; store.set("watchJob", id);
     if (draft.when) { toast("Booked for " + new Date(draft.when).toLocaleString([], { weekday: "short", hour: "2-digit", minute: "2-digit" }) + ". See it in Trips.", "ok"); draft.drop = null; draft.when = null; render(); }
@@ -163,9 +211,10 @@ export function mountBook(root) {
     const d = j.driverId && K.drivers[j.driverId];
     let head, sub = "";
     if (j.status === "new" || j.status === "offered") { head = "Finding your driver…"; sub = "Usually under a minute"; }
-    else if (j.status === "accepted") { const m = etaMinutes(d && d.move); head = m <= 1 ? "Your driver is nearly there" : "Arriving in " + m + " min"; sub = "Car " + (d ? d.call : "") + " is on the way to " + j.pickup.name; }
+    else if (j.status === "accepted" && j.stacked && d && jobOfDriver(d.id) && jobOfDriver(d.id).id !== j.id) { const cur = jobOfDriver(d.id); const m = (etaTo(d, cur.drop) || 0) + driveMinutes(cur.drop, j.pickup); head = "Arriving in about " + Math.max(2, m) + " min"; sub = "Car " + d.call + " is finishing a trip nearby, then coming straight to you"; }
+    else if (j.status === "accepted") { const m = etaTo(d, j.pickup); head = m <= 1 ? "Your driver is nearly there" : "Arriving in " + m + " min"; sub = "Car " + (d ? d.call : "") + " is on the way to " + j.pickup.name; }
     else if (j.status === "arrived") { head = "Your driver is outside"; sub = "Look for the " + carLabel(d) + " · " + (d ? d.car.reg : ""); }
-    else if (j.status === "pob") { const m = etaMinutes(d && d.move); head = "On the way to " + j.drop.name; sub = "Arriving in about " + Math.max(1, m) + " min"; }
+    else if (j.status === "pob") { const m = etaTo(d, j.drop); head = "On the way to " + j.drop.name; sub = "Arriving in about " + Math.max(1, m) + " min"; }
     else if (j.status === "done") return renderRate(j, d);
     fill(sheet,
       h("div", { class: "b-grab" }),
@@ -175,10 +224,21 @@ export function mountBook(root) {
         h("div", { class: "b-driver-txt" }, h("b", { text: d.name.split(" ")[0] + " · Car " + d.call }), h("span", { class: "dim" }, "★ " + (d.rating || 5).toFixed(1) + " · " + carLabel(d))),
         h("span", { class: "plate", text: d.car.reg })) : null,
       h("div", { class: "b-trip" }, line("a", j.pickup.name), line("b", j.drop.name)),
+      j.passenger ? h("div", { class: "b-meta" }, h("span", {}, icon("user", 14), "For " + j.passenger.name + (j.passenger.phone ? " · they get the texts too" : ""))) : null,
       h("div", { class: "b-meta" }, h("span", {}, icon("pound", 14), money(j.fare) + " · pay the driver by cash or card")),
+      h("button", { type: "button", class: "b-share", onclick: () => shareTrip(j) }, icon("share", 16), h("span", {}, h("b", { text: "Share live trip" }), h("small", { class: "dim", text: "Send family a link to watch the car" }))),
       h("div", { class: "b-actions" },
         d ? h("a", { class: "b-btn", href: "tel:" + d.phone.replace(/\s/g, "") }, icon("phone", 16), "Call " + d.name.split(" ")[0]) : null,
         j.status !== "pob" ? h("button", { type: "button", class: "b-btn danger", onclick: async () => { if (await confirmBox("Cancel this booking?", "The driver will be told straight away.", "Cancel booking", true)) { await cancel(j); watching = null; store.set("watchJob", null); go("home"); } } }, "Cancel") : null));
+  }
+  async function shareTrip(j) {
+    const url = shareLink(j.id);
+    const ok = await copyText(url);
+    const m = modal({ title: "Share live trip", body: h("div", { class: "form" },
+      h("p", { class: "muted", text: "Anyone with this link can see the car on the map, the driver's name and reg, and when you'll arrive. It stops working when the trip ends." }),
+      h("input", { class: "input", id: "share-url", value: url, readonly: true, onfocus: e => e.target.select() }),
+      h("small", { class: "dim", text: ok ? "Link copied. Paste it into WhatsApp or a text." : "Select the link and copy it." })),
+      actions: [h("button", { type: "button", class: "btn primary", onclick: () => m.close() }, "Done")] });
   }
   const line = (cls, text) => h("div", { class: "b-line" }, h("i", { class: cls }), h("span", { text }));
   const initials = n => n.split(" ").map(x => x[0]).join("").slice(0, 2);
@@ -198,7 +258,35 @@ export function mountBook(root) {
         h("div", {}, h("span", { text: "Paid by" }), h("b", { text: j.pay === "cash" ? "Cash" : "Card" })),
         h("div", {}, h("span", { text: "Trip" }), h("b", { text: j.pickup.name + " → " + j.drop.name })),
         h("div", {}, h("span", { text: "Date" }), h("b", { text: stamp(j.doneAt || Date.now()) }))),
-      h("button", { type: "button", class: "b-book", onclick: async () => { if (stars) await rate(j, stars); rated.add(j.id); watching = null; store.set("watchJob", null); draft.drop = null; toast(stars ? "Thanks for rating!" : "Thanks for riding with " + K.settings.firm + "."); go("home"); } }, stars ? "Send rating" : "Done"));
+      h("div", { class: "b-links" },
+        h("button", { type: "button", class: "link-btn", onclick: () => reportProblem(j) }, icon("thumbDown", 14), "Report a problem"),
+        h("button", { type: "button", class: "link-btn", onclick: () => reportLost(j) }, icon("box", 14), "I left something")),
+      h("button", { type: "button", class: "b-book", onclick: async () => { if (stars) await rate(j, stars); rated.add(j.id); watching = null; store.set("watchJob", null); draft.drop = null; toast(stars ? "Thanks for rating!" : "Thanks for riding with " + K.settings.firm + "."); go("home"); if (stars && stars <= 2) reportProblem(j); } }, stars ? "Send rating" : "Done"));
+  }
+
+  function reportProblem(j) {
+    let kind = null;
+    const opts = h("div", { class: "opts wrap" });
+    const draw = () => fill(opts, Object.entries(COMPLAINT_KINDS).map(([k, l]) => h("button", { type: "button", class: "opt" + (kind === k ? " on" : ""), onclick: () => { kind = k; draw(); } }, l)));
+    draw();
+    const txt = h("textarea", { class: "input", id: "rp-text", rows: 3, maxlength: 500, placeholder: "What happened?" });
+    const m = modal({ title: "Report a problem", body: h("div", { class: "form" }, h("p", { class: "muted", text: j.pickup.name + " → " + j.drop.name + " · " + stamp(j.doneAt || j.when) }), opts, txt, h("small", { class: "dim", text: "The office reads every report and will call you back if needed." })),
+      actions: [h("button", { type: "button", class: "btn", onclick: () => m.close() }, "Cancel"), h("button", { type: "button", class: "btn primary", onclick: async () => {
+        if (!kind) { toast("Pick what went wrong."); return; }
+        await addComplaint({ jobId: j.id, driverId: j.driverId || null, customer: profile, kind, text: txt.value.trim() });
+        m.close(); toast("Sent to the office. Sorry about that.", "ok");
+      } }, "Send")] });
+  }
+  function reportLost(j) {
+    const item = h("input", { class: "input", id: "lp-item", placeholder: "What did you leave? e.g. black purse", maxlength: 80 });
+    const det = h("input", { class: "input", id: "lp-det", placeholder: "Where in the car, anything distinctive", maxlength: 160 });
+    const m = modal({ title: "Left something in the car?", body: h("div", { class: "form" }, h("p", { class: "muted", text: "We'll tell your driver straight away and call you on " + profile.phone + "." }), item, det),
+      actions: [h("button", { type: "button", class: "btn", onclick: () => m.close() }, "Cancel"), h("button", { type: "button", class: "btn primary", onclick: async () => {
+        if (!item.value.trim()) { toast("Say what you left."); return; }
+        await addLost({ item: item.value.trim(), details: det.value.trim(), jobId: j.id, driverId: j.driverId || null, customer: profile, by: "customer" });
+        if (j.driverId) sendMsg(j.driverId, "dispatch", "Lost property: " + profile.name + " left " + item.value.trim() + " after " + j.pickup.name + " → " + j.drop.name + ". Please check the car and tell the office.");
+        m.close(); toast("Reported. Your driver has been told.", "ok");
+      } }, "Report")] });
   }
 
   // ---------- trips ----------
@@ -209,7 +297,12 @@ export function mountBook(root) {
       list.length ? h("div", { class: "b-trips" }, list.map(j => h("div", { class: "b-tripcard" },
         h("div", { class: "b-tripcard-hd" }, h("b", { text: stamp(j.when) }), h("span", { class: "pill " + STATUS[j.status].tone, text: j.prebook && j.status === "new" ? "Booked" : STATUS[j.status].label })),
         line("a", j.pickup.name), line("b", j.drop.name),
-        h("div", { class: "b-tripcard-ft dim" }, money(j.fare) + (j.pay ? " · " + (j.pay === "cash" ? "cash" : "card") : "") + (j.rating ? " · " + "★".repeat(j.rating) : "")),
+        h("div", { class: "b-tripcard-ft dim" }, money(j.fare) + (j.pay ? " · " + (j.pay === "cash" ? "cash" : j.pay === "account" ? "on account" : "card") : "") + (j.rating ? " · " + "★".repeat(j.rating) : "") + (j.passenger ? " · for " + j.passenger.name : "")),
+        j.status === "done" || j.status === "cancelled" ? h("div", { class: "b-tripcard-act" },
+          h("button", { type: "button", class: "b-chip", onclick: () => { draft.pickup = j.pickup; draft.drop = j.drop; draft.vehicle = j.vehicle || "saloon"; draft.passengers = j.passengers || 1; draft.when = null; go("home"); } }, icon("repeat", 13), "Book again"),
+          h("button", { type: "button", class: "b-chip", onclick: () => { draft.pickup = j.drop; draft.drop = j.pickup; draft.when = null; go("home"); } }, icon("swap", 13), "Return trip"),
+          j.status === "done" ? h("button", { type: "button", class: "b-chip ghost", onclick: () => reportLost(j) }, "Lost item") : null,
+          j.status === "done" ? h("button", { type: "button", class: "b-chip ghost", onclick: () => reportProblem(j) }, "Problem") : null) : null,
         j.prebook && ["new", "offered"].includes(j.status) ? h("button", { type: "button", class: "link-btn", onclick: async () => { if (await confirmBox("Cancel this booking?", "", "Cancel booking", true)) cancel(j); } }, "Cancel booking") : null))) :
         h("div", { class: "empty" }, h("b", { text: "No trips yet" }), h("span", { text: "Your bookings will show up here." })),
       h("button", { type: "button", class: "link-btn center", onclick: () => profileEdit() }, "Not " + profile.name + "? Change details"));
@@ -340,8 +433,24 @@ export function mountBook(root) {
     }
   }
 
+  // text messages land as a phone-style banner (in the demo, texts are logged rather than sent)
+  let seenTexts = Date.now();
+  function showTexts() {
+    const mine = new Set([custKey(), forOther && String(forOther.phone || "").replace(/\D/g, "")].filter(Boolean));
+    const fresh = K.texts.filter(t => t.at > seenTexts && mine.has(String(t.to).replace(/\D/g, ""))).sort((a, b) => a.at - b.at);
+    if (!fresh.length) return;
+    seenTexts = fresh[fresh.length - 1].at;
+    const t = fresh[fresh.length - 1];
+    const old = root.querySelector(".sms-banner"); if (old) old.remove();
+    const b = h("div", { class: "sms-banner", role: "status" }, h("span", { class: "sms-ic" }, icon("sms", 16)), h("div", { class: "grow" }, h("small", { class: "dim", text: "Text message · now" + (t.status === "logged" ? " · demo" : "") }), h("p", { text: t.body })));
+    b.addEventListener("click", () => b.remove());
+    root.querySelector(".phone-app").append(b);
+    setTimeout(() => b.classList.add("out"), 6500); setTimeout(() => b.remove(), 7000);
+  }
+
   let lastKey = "";
   onChange(() => {
+    showTexts();
     const j = current();
     const key = screen + "|" + (j ? j.id + j.status + (j.driverId || "") : "") + "|" + K.settingsLoaded;
     if (screen === "pick") { updateMap(); return; }

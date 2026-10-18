@@ -304,6 +304,7 @@ export function createMap(container, opts = {}) {
     center() { return { x: view.cx, y: view.cy }; },
     onMoveEnd(cb) { moveEnd.push(cb); },
     tilt() {},
+    setHeat() {},
     update(next) { data = Object.assign(data, next); data.offered = new Set((data.jobs || []).filter(j => j.status === "offered" && j.offer).map(j => j.offer.driverId)); },
     setFollow(fn) { follow = fn; if (!fn) target = null; },
     destroy() { alive = false; ro.disconnect(); canvas.remove(); },

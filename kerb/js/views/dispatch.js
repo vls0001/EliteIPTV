@@ -1,10 +1,12 @@
 // Dispatcher console and office: live map, job board, queues, phone bookings, drivers, rent, reports, settings.
-import { APP, VEHICLES, STATUS, SOURCES, ZONES, DOCS, DEFAULT_SETTINGS } from "../config.js";
+import { APP, VEHICLES, STATUS, SOURCES, ZONES, DOCS, DEFAULT_SETTINGS, MOBILITY } from "../config.js";
+import { renderAccounts, renderQuality, renderPlanner } from "./office.js";
+import { hotSpots } from "../features/planner.js";
 import { h, fill, icon, toast, store, modal, menu, stamp, fmtTime, relTime, confirmBox, isMobile } from "../lib/dom.js";
 import { posOf, etaMinutes, money, zoneOf, zoneName, routeMiles, driveMinutes, searchPlaces, quote } from "../lib/geo.js";
 import { createMap } from "../lib/map.js";
 import { alarm, ping } from "../lib/sound.js";
-import { K, onChange, driversList, activeJobs, jobOfDriver, offerFor, queueOf, assign, cancel, createJob, carLabel, fits, sendMsg, resolveAlert, saveSettings, saveDriver, setRentPaid, weekKey, earnings, setStatus } from "../store.js";
+import { K, onChange, driversList, activeJobs, jobOfDriver, offerFor, nextJobOf, etaTo, queueOf, assign, cancel, createJob, carLabel, fits, sendMsg, resolveAlert, saveSettings, saveDriver, setRentPaid, weekKey, earnings, setStatus, logCall, setCall } from "../store.js";
 import { DEMO_DRIVERS, driverDoc } from "../backend/seed.js";
 
 export function mountDispatch(root) {
@@ -18,7 +20,8 @@ export function mountDispatch(root) {
   const top = h("header", { class: "k-top" });
   const alertBar = h("div", { class: "k-alerts", hidden: true });
   const body = h("div", { class: "k-body" });
-  shell.append(top, alertBar, body);
+  const callBox = h("div", { class: "k-calls", "aria-live": "polite" });
+  shell.append(top, alertBar, body, callBox);
   let map = null, mapBox = null, cols = null;
   const editing = () => { const a = document.activeElement; return a && body.contains(a) && /INPUT|TEXTAREA|SELECT/.test(a.tagName); };
 
@@ -31,14 +34,61 @@ export function mountDispatch(root) {
     const t = (k, l, ic) => h("button", { type: "button", class: "k-tab" + (tab === k ? " on" : ""), onclick: () => { tab = k; store.set("dTab", k); render(); } }, icon(ic, 16), h("span", { text: l }));
     fill(top,
       h("div", { class: "k-brand" }, logoSvg(26), h("b", { text: APP.name }), h("span", { class: "dim", text: K.settings.firm })),
-      h("nav", { class: "k-tabs" }, t("dispatch", "Dispatch", "mapPin"), t("drivers", "Drivers", "users"), t("rent", "Rent", "wallet"), t("reports", "Reports", "chart"), t("settings", "Settings", "settings")),
+      h("nav", { class: "k-tabs" }, t("dispatch", "Dispatch", "mapPin"), t("drivers", "Drivers", "users"), t("accounts", "Accounts", "briefcase"), t("rent", "Rent", "wallet"), t("planner", "Planner", "calendar"), t("quality", "Quality", "star"), t("reports", "Reports", "chart"), t("settings", "Settings", "settings")),
       h("div", { class: "k-chips" },
         h("span", { class: "chip " + (waiting ? "warn" : ""), title: "Jobs waiting for a car" }, icon("clock", 14), waiting + " waiting"),
         h("span", { class: "chip ok", title: "Cars free" }, h("i", { class: "sdot free" }), free + " free"),
         h("span", { class: "chip", title: "Cars on jobs" }, h("i", { class: "sdot busy" }), busyN + " busy"),
         K.settings.boost > 1 ? h("span", { class: "chip warn", text: "×" + K.settings.boost + " " + (K.settings.boostLabel || "boost") }) : null,
+        missedChip(),
         h("span", { class: "chip dim", title: K.engineLeader ? "This screen is running auto-dispatch" : "Another open screen is running auto-dispatch" }, h("i", { class: "sdot " + (K.settings.autoDispatch ? "free" : "off") }), K.settings.autoDispatch ? "Auto" : "Manual")),
       h("button", { type: "button", class: "btn primary", onclick: () => newBooking() }, icon("plus", 16), h("span", { text: "New booking" })));
+  }
+
+  // ---------- incoming calls (caller ID) ----------
+  const digits = p => String(p || "").replace(/\D/g, "");
+  function whoIs(number) {
+    const key = digits(number);
+    const cust = K.customers[key];
+    const acc = Object.entries(K.accounts).find(([, a]) => digits(a.phone) === key);
+    const trips = K.jobs.filter(j => digits(j.customer && j.customer.phone) === key || digits(j.passenger && j.passenger.phone) === key).sort((a, b) => (b.when || 0) - (a.when || 0));
+    const pairs = {}; for (const j of trips.slice(0, 30)) { const k = j.pickup.name + " → " + j.drop.name; pairs[k] = pairs[k] || { n: 0, j }; pairs[k].n++; }
+    const usual = Object.values(pairs).sort((a, b) => b.n - a.n)[0];
+    const live = trips.find(j => ["new", "offered", "accepted", "arrived", "pob"].includes(j.status));
+    const issues = K.complaints.filter(c => digits(c.customer && c.customer.phone) === key && c.status === "open").length;
+    const lost = K.lost.filter(x => digits(x.customer && x.customer.phone) === key && !["returned", "disposed"].includes(x.status));
+    return { key, cust, acc: acc ? { id: acc[0], ...acc[1] } : null, trips, usual: usual && usual.n >= 2 ? usual.j : null, live, issues, lost, noshows: trips.filter(j => j.status === "noshow").length };
+  }
+  function renderCalls() {
+    const ringing = K.calls.filter(c => c.status === "ringing" && Date.now() - c.at < 35000);
+    fill(callBox, ringing.slice(0, 2).map(c => {
+      const w = whoIs(c.number);
+      const name = w.acc ? w.acc.name : w.cust ? w.cust.name : "Unknown caller";
+      const places = (w.cust && w.cust.places) || [];
+      const book = pre => { setCall(c, "answered"); newBooking(Object.assign({ phone: c.number, name: w.acc ? "" : w.cust ? w.cust.name : "", account: w.acc ? w.acc.id : "" }, pre)); };
+      return h("div", { class: "callcard" },
+        h("div", { class: "callcard-hd" }, h("span", { class: "ring" }, icon("phoneIn", 18)), h("div", { class: "grow" }, h("b", { text: name }), h("small", { class: "dim", text: c.number + " · " + (c.line || "Main line") + " · ringing" })), h("button", { type: "button", class: "ibtn sm", "aria-label": "Dismiss", onclick: () => setCall(c, "answered") }, icon("x", 14))),
+        h("div", { class: "callcard-facts" },
+          w.acc ? h("span", { class: "pill info", text: "Account" }) : null,
+          w.trips.length ? h("span", { class: "dim", text: w.trips.length + " trips · last " + relTime(w.trips[0].when) }) : h("span", { class: "dim", text: w.acc ? "Account line" : "New customer" }),
+          w.noshows ? h("span", { class: "pill warn", text: w.noshows + " no-show" + (w.noshows > 1 ? "s" : "") }) : null,
+          w.issues ? h("span", { class: "pill bad", text: "Open complaint" }) : null,
+          w.lost.length ? h("span", { class: "pill warn", text: "Lost: " + w.lost[0].item }) : null),
+        w.live ? h("div", { class: "callcard-live" }, h("b", { text: "Live job: " }), w.live.pickup.name + " → " + w.live.drop.name + " · " + STATUS[w.live.status].label + (w.live.driverId && K.drivers[w.live.driverId] ? " · car " + K.drivers[w.live.driverId].call + ", " + (etaTo(K.drivers[w.live.driverId], w.live.pickup) || 0) + " min" : "")) : null,
+        h("div", { class: "row-btns" },
+          h("button", { type: "button", class: "btn sm primary", onclick: () => book({ pickup: (w.cust && w.cust.lastPickup && w.cust.lastPickup.x > 1100) ? w.cust.lastPickup : null }) }, "Book"),
+          w.usual ? h("button", { type: "button", class: "btn sm", onclick: () => book({ pickup: w.usual.pickup, drop: w.usual.drop }) }, "Usual: " + w.usual.drop.name) : null,
+          places.slice(0, 2).map(p => h("button", { type: "button", class: "btn sm", onclick: () => book({ pickup: p }) }, "From " + p.label)),
+          w.live ? h("button", { type: "button", class: "btn sm", onclick: () => { setCall(c, "answered"); tab = "dispatch"; selJob = w.live.id; jobFilter = filterOf(w.live); render(); } }, "Show job") : null));
+    }));
+  }
+  function missedChip() {
+    const today = new Date().setHours(0, 0, 0, 0);
+    const missed = K.calls.filter(c => c.status === "missed" && c.at >= today);
+    if (!missed.length) return null;
+    return h("button", { type: "button", class: "chip warn", title: "Missed calls today", onclick: e => menu(e.currentTarget, [
+      h("div", { class: "menu-hd dim small", text: "Missed today" }),
+      ...missed.slice(0, 8).map(c => { const w = whoIs(c.number); return h("div", { class: "menu-call" }, h("div", { class: "grow" }, h("b", { text: w.acc ? w.acc.name : w.cust ? w.cust.name : c.number }), h("small", { class: "dim", text: c.number + " · " + fmtTime(c.at) })), h("a", { class: "btn sm", href: "tel:" + digits(c.number), onclick: () => setCall(c, "called-back") }, icon("phone", 13), "Call back")); })]) }, icon("phoneIn", 14), missed.length + " missed");
   }
 
   function renderAlerts() {
@@ -65,7 +115,8 @@ export function mountDispatch(root) {
         h("button", { type: "button", class: "ibtn", "aria-label": "Zoom in", onclick: () => map.zoom(0.8) }, icon("zoomIn", 18)),
         h("button", { type: "button", class: "ibtn", "aria-label": "Zoom out", onclick: () => map.zoom(1.25) }, icon("zoomOut", 18)),
         h("button", { type: "button", class: "ibtn", "aria-label": "Show whole map", onclick: () => map.fit() }, icon("target", 18)),
-        h("button", { type: "button", class: "ibtn tilt", "aria-label": "Tilt map", title: "3D view", onclick: e => { const on = !e.currentTarget.classList.contains("on"); e.currentTarget.classList.toggle("on", on); map.tilt(on); } }, h("span", { class: "tilt-t", text: "3D" }))),
+        h("button", { type: "button", class: "ibtn tilt", "aria-label": "Tilt map", title: "3D view", onclick: e => { const on = !e.currentTarget.classList.contains("on"); e.currentTarget.classList.toggle("on", on); map.tilt(on); } }, h("span", { class: "tilt-t", text: "3D" })),
+        h("button", { type: "button", class: "ibtn" + (heatOn ? " on" : ""), "aria-label": "Hot spots", title: "Hot spots: where jobs usually come from at this time", onclick: e => { heatOn = !heatOn; store.set("dHeat", heatOn); e.currentTarget.classList.toggle("on", heatOn); map.setHeat(heatOn ? hotSpots() : null); } }, icon("flame", 18))),
       h("div", { class: "k-legend" }, h("span", {}, h("i", { class: "sdot free" }), "Free"), h("span", {}, h("i", { class: "sdot offered" }), "Offered"), h("span", {}, h("i", { class: "sdot busy" }), "On job"), h("span", {}, h("i", { class: "sdot break" }), "Break"), h("span", {}, h("i", { class: "pin-key" }), "Waiting job")));
     const mtabs = h("div", { class: "k-mtabs" }, [["jobs", "Jobs"], ["map", "Map"], ["drivers", "Cars"]].map(([k, l]) => h("button", { type: "button", class: "seg-btn" + (mobilePane === k ? " on" : ""), onclick: e => { mobilePane = k; cols.dataset.pane = k; e.currentTarget.parentNode.querySelectorAll(".seg-btn").forEach(b => b.classList.toggle("on", b === e.currentTarget)); if (k === "map") setTimeout(() => map.fit(), 30); } }, l)));
     cols = h("div", { class: "k-dispatch", dataset: { pane: mobilePane } }, jobsCol, mapCol, driversCol);
@@ -74,7 +125,9 @@ export function mountDispatch(root) {
       onCarClick: id => { selDriver = id; selJob = null; renderCols(); },
       onPinClick: id => { selJob = id; jobFilter = filterOf(K.jobs.find(j => j.id === id)) || jobFilter; renderCols(); },
     });
+    if (heatOn) map.setHeat(hotSpots());
   }
+  let heatOn = store.get("dHeat", false);
   const filterOf = j => !j ? null : (j.status === "new" || j.status === "offered") ? (isPrebook(j) ? "booked" : "waiting") : ["accepted", "arrived", "pob"].includes(j.status) ? "live" : "done";
 
   function renderCols() {
@@ -118,7 +171,15 @@ export function mountDispatch(root) {
         late ? h("span", { class: "pill bad", text: "Waiting " + waitMin + "m" }) : h("span", { class: "pill " + STATUS[j.status].tone, text: j.status === "offered" && od ? "Offered to " + od.call : STATUS[j.status].label })),
       h("div", { class: "jroute" }, h("div", { class: "b-line" }, h("i", { class: "a" }), h("span", { text: j.pickup.name })), h("div", { class: "b-line" }, h("i", { class: "b" }), h("span", { text: j.drop.name }))),
       h("div", { class: "jmeta" }, h("span", { text: j.customer.name || "Customer" }), h("span", { class: "dim", text: VEHICLES[j.vehicle].label + " · " + j.passengers + " pax" }), h("b", { text: money(j.fare) + (j.pay ? " " + j.pay : "") }), d ? h("span", { class: "callchip", text: d.call }) : null));
+    const acc = j.account && K.accounts[j.account];
+    if (acc || j.passenger || j.stacked) card.append(h("div", { class: "jextra" },
+      acc ? h("span", { class: "pill info", text: acc.name.split(" ").slice(0, 3).join(" ") + (j.ref ? " · " + j.ref : "") }) : null,
+      j.source === "contract" ? h("span", { class: "pill", text: "Regular run" }) : null,
+      j.passenger && j.passenger.name ? h("span", { class: "dim small", text: "For " + j.passenger.name }) : null,
+      j.mobility && j.mobility !== "walks" ? h("span", { class: "pill warn", text: MOBILITY[j.mobility] }) : null,
+      j.stacked && d && jobOfDriver(d.id) && jobOfDriver(d.id).id !== j.id ? h("span", { class: "pill", text: "Next for car " + d.call }) : null));
     if (j.notes) card.append(h("div", { class: "jnotes", text: "Note: " + j.notes }));
+    if (j.status === "noshow" && j.noshow) { const n = j.noshow; card.append(h("div", { class: "jproof" + (n.waitedSecs < 300 || !n.called ? " weak" : "") }, icon(n.waitedSecs >= 300 && n.called ? "check" : "alert", 13), "Waited " + Math.floor(n.waitedSecs / 60) + ":" + String(n.waitedSecs % 60).padStart(2, "0") + " · " + (n.called ? "called the customer" : "didn't call") + " · " + (n.distM != null ? n.distM + " m from pick-up" : n.place || ""))); }
     if (sel && ["new", "offered", "accepted", "arrived"].includes(j.status)) card.append(assignBox(j));
     if (sel && j.status === "done" && j.rating) card.append(h("div", { class: "dim small", text: "Rated " + "★".repeat(j.rating) }));
     return card;
@@ -144,7 +205,7 @@ export function mountDispatch(root) {
       const sub = j ? STATUS[j.status].label + " · " + (j.status === "pob" ? j.drop.name : j.pickup.name) : o ? "Offered: " + o.pickup.name : d.status === "break" ? "On break" : d.status === "off" ? "Offline" : zoneName(zoneOf(posOf(d)));
       return h("button", { type: "button", class: "drow" + (selDriver === d.id ? " sel" : ""), onclick: () => { selDriver = selDriver === d.id ? null : d.id; selJob = null; renderCols(); if (selDriver && map) map.lookAt(posOf(d), 1800); } },
         h("span", { class: "callchip " + (o ? "offered" : d.status) , text: d.call }), h("span", { class: "drow-txt" }, h("b", { text: d.name }), h("small", { class: "dim", text: sub })),
-        j && j.status !== "arrived" ? h("span", { class: "dim small", text: etaMinutes(d.move) + "m" }) : null);
+        j && j.status !== "arrived" ? h("span", { class: "dim small", text: (etaTo(d, j.status === "pob" ? j.drop : j.pickup) || 0) + "m" + (nextJobOf(d.id) ? " +1" : "") }) : null);
     };
     const queues = ZONES.map(z => ({ z, q: queueOf(z.id) }));
     fill(col,
@@ -173,7 +234,13 @@ export function mountDispatch(root) {
 
   // ---------- new booking (phone) ----------
   function newBooking(prefill = {}) {
-    let pickup = prefill.pickup || null, drop = null, vehicle = "saloon";
+    let pickup = prefill.pickup || null, drop = prefill.drop || null, vehicle = "saloon";
+    const accSel = h("select", { class: "input", id: "nb-acc" }, h("option", { value: "", text: "No account (customer pays)" }), Object.entries(K.accounts).map(([id, a]) => { const o = h("option", { value: id, text: a.name }); if (id === prefill.account) o.selected = true; return o; }));
+    const ref = h("input", { class: "input", id: "nb-ref", placeholder: "Reference", maxlength: 40 });
+    const pName = h("input", { class: "input", id: "nb-pname", placeholder: "Passenger, if not the caller", autocomplete: "off" });
+    const accRow = h("div", { class: "nb-grid" }, h("label", { class: "field", for: "nb-acc" }, h("span", { text: "Account" }), accSel), h("label", { class: "field", for: "nb-ref" }, h("span", { id: "nb-ref-l", text: "Reference" }), ref));
+    const syncAcc = () => { const a = K.accounts[accSel.value]; ref.placeholder = a ? (a.refLabel || "Reference") + (a.requireRef ? " (required)" : "") : "Reference"; const l = accRow.querySelector("#nb-ref-l"); if (l) l.textContent = a ? a.refLabel || "Reference" : "Reference"; drawQ && drawQ(); };
+    accSel.addEventListener("change", syncAcc);
     const phone = h("input", { class: "input", id: "nb-phone", placeholder: "Caller's number", inputmode: "tel", autocomplete: "off" });
     const name = h("input", { class: "input", id: "nb-name", placeholder: "Name", autocomplete: "off" });
     const pIn = h("input", { class: "input", id: "nb-pick", placeholder: "Pick-up address or place", autocomplete: "off" });
@@ -189,7 +256,10 @@ export function mountDispatch(root) {
     const drawQ = () => {
       if (!pickup || !drop) { fill(qbox, h("span", { class: "dim", text: "Add pick-up and destination to price the job." })); return; }
       const t = when.value ? new Date(when.value).getTime() : Date.now();
-      const q = quote(pickup, drop, K.settings, vehicle, t);
+      const a = K.accounts[accSel.value];
+      const tr = a ? Object.assign({}, K.settings, a.tariff || {}, { boost: 1 }, a.noNight ? { nightRate: 1 } : {}) : K.settings;
+      const q = quote(pickup, drop, tr, vehicle, t);
+      if (a) q.fare = Math.round(q.fare * (1 - (a.discount || 0) / 100) * 10) / 10;
       const eta = driversList().filter(d => d.status === "free" && fits(d, vehicle)).map(d => driveMinutes(posOf(d), pickup)).sort((a, b) => a - b)[0];
       fill(qbox, h("b", { text: money(q.fare) }), h("span", { class: "dim", text: q.miles + " mi · " + q.mins + " min trip" + (q.night ? " · night rate" : "") + (eta ? " · nearest car " + eta + " min" : " · no car free") }));
     };
@@ -209,27 +279,37 @@ export function mountDispatch(root) {
     phone.addEventListener("input", () => {
       const key = phone.value.replace(/\D/g, "");
       const c = key.length >= 10 && K.customers[key];
-      if (c) { name.value = c.name; hint.textContent = "Returning customer"; if (c.lastPickup && c.lastPickup.x > 1100 && !pickup) { pickup = c.lastPickup; pIn.value = c.lastPickup.name; drawQ(); } }
+      const acc = Object.entries(K.accounts).find(([, a]) => (a.phone || "").replace(/\D/g, "") === key);
+      if (acc) { accSel.value = acc[0]; syncAcc(); hint.textContent = "Account: " + acc[1].name; }
+      else if (c) { name.value = c.name; hint.textContent = "Returning customer" + ((c.places || []).length ? " · saved: " + c.places.map(p => p.label).join(", ") : ""); if (c.lastPickup && c.lastPickup.x > 1100 && !pickup) { pickup = c.lastPickup; pIn.value = c.lastPickup.name; drawQ(); } }
       else hint.textContent = key.length >= 10 ? "New customer" : "";
     });
     when.addEventListener("change", drawQ);
+    if (prefill.phone) { phone.value = prefill.phone; phone.dispatchEvent(new Event("input")); }
+    if (prefill.name && !name.value) name.value = prefill.name;
+    if (pickup) pIn.value = pickup.name;
+    if (drop) dIn.value = drop.name;
+    if (prefill.account) syncAcc();
     drawV(); drawQ();
     const f = (id, l, el) => h("label", { class: "field", for: id }, h("span", { text: l }), el);
     const m = modal({
       title: "New booking", wide: false, className: "nb-modal",
       body: [h("div", { class: "nb-grid" }, f("nb-phone", "Phone", phone), f("nb-name", "Name", name)), hint,
-        f("nb-pick", "Pick-up", pIn), f("nb-drop", "Destination", dIn), sugg,
+        accRow,
+        f("nb-pick", "Pick-up", pIn), f("nb-drop", "Destination", dIn), sugg, f("nb-pname", "Passenger", pName),
         h("div", { class: "field" }, h("span", { text: "Car" }), vrow),
         h("div", { class: "nb-grid" }, f("nb-when", "When (leave empty for ASAP)", when), f("nb-pax", "Passengers", pax)),
         f("nb-notes", "Notes", notes), qbox],
       actions: [h("button", { type: "button", class: "btn", onclick: () => m.close() }, "Cancel"), h("button", { type: "button", class: "btn primary", onclick: async () => {
         if (!pickup || !drop) { toast("Add a pick-up and destination."); return; }
+        const a = K.accounts[accSel.value];
+        if (a && a.requireRef && !ref.value.trim()) { toast("This account needs a " + (a.refLabel || "reference") + "."); ref.focus(); return; }
         const t = when.value ? new Date(when.value).getTime() : Date.now();
-        const id = await createJob({ pickup, drop, vehicle, passengers: +pax.value || 1, notes: notes.value.trim(), when: t, customer: { name: name.value.trim() || "Phone customer", phone: phone.value.trim() }, source: "phone" });
+        const id = await createJob({ pickup, drop, vehicle, passengers: +pax.value || 1, notes: notes.value.trim(), when: t, customer: { name: name.value.trim() || (a ? a.name : "Phone customer"), phone: phone.value.trim() }, passenger: pName.value.trim() ? { name: pName.value.trim(), phone: "" } : null, account: accSel.value, ref: ref.value.trim(), source: "phone" });
         if (id) { m.close(); toast("Booked. " + (t > Date.now() + 10 * 60000 ? "It's in Booked." : "Finding a car now."), "ok"); jobFilter = t > Date.now() + 10 * 60000 ? "booked" : "waiting"; selJob = id; renderCols(); }
       } }, "Book job")],
     });
-    setTimeout(() => phone.focus(), 30);
+    setTimeout(() => (prefill.phone ? pIn : phone).focus(), 30);
   }
 
   // ---------- office: drivers ----------
@@ -290,17 +370,21 @@ export function mountDispatch(root) {
   function renderRentTab() {
     const wk = weekKey(Date.now() - rentWeekBack * 7 * 86400000);
     const all = driversList().sort((a, b) => +a.call - +b.call);
-    const rows = all.map(d => ({ d, r: K.rent.find(x => x.driverId === d.id && x.week === wk) }));
+    const wkStart = new Date(wk).getTime();
+    const rows = all.map(d => ({ d, r: K.rent.find(x => x.driverId === d.id && x.week === wk), acc: earnings(d.id, wkStart, wkStart + 7 * 86400000).account }));
     const collected = rows.filter(x => x.r && x.r.paid).reduce((a, x) => a + x.r.amount, 0);
     const owed = rows.filter(x => !(x.r && x.r.paid)).reduce((a, x) => a + (x.r ? x.r.amount : x.d.rent || 0), 0);
     fill(body, h("div", { class: "office" },
+      h("p", { class: "note small", text: "Account work (NHS, council, hotels) is billed by the office, so it's paid to drivers. Balance = account work minus unpaid rent." }),
       h("div", { class: "office-hd" }, h("h1", { text: "Weekly rent" }), h("div", { class: "seg" }, [[2, "2 weeks ago"], [1, "Last week"], [0, "This week"]].map(([n, l]) => h("button", { type: "button", class: "seg-btn" + (rentWeekBack === n ? " on" : ""), onclick: () => { rentWeekBack = n; renderRentTab(); } }, l)))),
       h("div", { class: "kpis" }, kpi("Week starting", new Date(wk).toLocaleDateString(undefined, { day: "numeric", month: "short" })), kpi("Collected", money(collected)), kpi("Outstanding", money(owed), owed ? "warn" : ""), kpi("Drivers paid", rows.filter(x => x.r && x.r.paid).length + " of " + rows.length)),
       h("div", { class: "tablewrap" }, h("table", { class: "tbl" },
-        h("thead", {}, h("tr", {}, ["Car", "Driver", "Amount", "Status", ""].map(t => h("th", { text: t })))),
-        h("tbody", {}, rows.map(({ d, r }) => h("tr", {},
+        h("thead", {}, h("tr", {}, ["Car", "Driver", "Rent", "Account work", "Balance", "Status", ""].map(t => h("th", { text: t })))),
+        h("tbody", {}, rows.map(({ d, r, acc }) => h("tr", {},
           h("td", {}, h("span", { class: "callchip " + d.status, text: d.call })), h("td", { text: d.name }),
           h("td", { text: money(r ? r.amount : d.rent) }),
+          h("td", { class: acc ? "" : "dim", text: money(acc) }),
+          h("td", {}, (() => { const bal = acc - (r && r.paid ? 0 : (r ? r.amount : d.rent || 0)); return h("span", { class: bal >= 0 ? "ok-t" : "", title: bal >= 0 ? "The firm owes the driver this after rent" : "The driver owes this after their account work", text: bal >= 0 ? "Pay driver " + money(bal) : "Driver owes " + money(-bal) }); })()),
           h("td", {}, h("span", { class: "pill " + (r && r.paid ? "ok" : "warn"), text: r && r.paid ? "Paid " + (r.paidAt ? new Date(r.paidAt).toLocaleDateString(undefined, { day: "numeric", month: "short" }) : "") : "Due" })),
           h("td", {}, h("button", { type: "button", class: "btn sm" + (r && r.paid ? "" : " primary"), onclick: () => setRentPaid(d.id, wk, r ? r.amount : d.rent || 0, !(r && r.paid)) }, r && r.paid ? "Undo" : "Mark paid")))))))));
   }
@@ -343,6 +427,8 @@ export function mountDispatch(root) {
     const tg = (k, l, hint) => { v[k] = h("input", { type: "checkbox", class: "tg", id: "s-" + k }); v[k].checked = !!s[k]; return h("label", { class: "toggle-row", for: "s-" + k }, h("span", { class: "grow" }, h("b", { text: l }), h("small", { class: "dim", text: hint })), v[k]); };
     v.firm = h("input", { class: "input", id: "s-firm", value: s.firm });
     v.boostLabel = h("input", { class: "input", id: "s-boostLabel", value: s.boostLabel || "", placeholder: "e.g. Illuminations" });
+    v.officePhone = h("input", { class: "input", id: "s-officePhone", value: s.officePhone || "", inputmode: "tel" });
+    const textLog = () => { const list = K.texts.slice(0, 8); return list.length ? h("div", { class: "textlog" }, list.map(t => h("div", { class: "textlog-row" }, h("div", { class: "grow" }, h("small", { class: "dim", text: (t.name || t.to) + " · " + t.to + " · " + relTime(t.at) + " · " + t.status }), h("p", { text: t.body }))))) : h("p", { class: "dim small", text: "No texts yet." }); };
     v.mode = h("select", { class: "input", id: "s-mode" }, [["queue", "Zone queue (first come, first served)"], ["nearest", "Nearest car"]].map(([k, l]) => { const o = h("option", { value: k, text: l }); if (s.mode === k) o.selected = true; return o; }));
     fill(body, h("div", { class: "office narrow" },
       h("div", { class: "office-hd" }, h("h1", { text: "Settings" })),
@@ -355,12 +441,22 @@ export function mountDispatch(root) {
         h("div", { class: "lbl", text: "Dispatch" }),
         tg("autoDispatch", "Auto-dispatch", "Offer jobs to cars automatically. Turn off to assign everything by hand."),
         h("label", { class: "field", for: "s-mode" }, h("span", { text: "How cars are picked" }), v.mode),
+        tg("stacking", "Back-to-back jobs", "Offer the next job to a car that's about to drop off, if no car is free."),
+        h("div", { class: "lbl", text: "Text messages" }),
+        tg("texts", "Text customers", "Booking confirmation, car on the way with a live link, outside, and receipt."),
+        h("div", { class: "svc" }, icon("sms", 18), h("div", { class: "grow" }, h("b", { text: s.smsProvider ? "Sending through " + s.smsProvider : "No SMS provider connected" }), h("small", { class: "dim", text: s.smsProvider ? "Texts go out as they happen." : "Texts are logged below so you can see them. Connect an SMS service (Twilio, Textlocal, Firetext) at launch to send them, about 3–4p a text." }))),
+        textLog(),
+        h("div", { class: "lbl", text: "Phone line" }),
+        h("label", { class: "field", for: "s-officePhone" }, h("span", { text: "Office number (shown in texts)" }), v.officePhone),
+        h("div", { class: "svc" }, icon("phoneIn", 18), h("div", { class: "grow" }, h("b", { text: s.phoneSystem ? "Connected to " + s.phoneSystem : "Caller ID not connected" }), h("small", { class: "dim", text: "When your phone system (Gamma, RingCentral, Twilio, 3CX) is connected, each incoming call pops up with the caller's history. Until then, try it here." })),
+          h("button", { type: "button", class: "btn sm", onclick: () => { const ppl = Object.values(K.customers).filter(c => c.phone); const p = ppl[Math.floor(Math.random() * ppl.length)]; logCall(p ? p.phone : "07700 900999", { line: "Test call" }); } }, "Simulate a call")),
         h("div", { class: "lbl", text: "Demo" }),
         tg("demoDrivers", "Demo drivers", "Cars marked as demo accept jobs and drive themselves."),
         tg("autoBookings", "Fake bookings", "Create a random booking every 30 seconds or so."),
+        K.api.mode === "demo" ? tg("demoCalls", "Fake phone calls", "Ring the office every couple of minutes so you can see caller ID.") : null,
         h("div", { class: "form-ft" },
           K.api.mode === "demo" ? h("button", { type: "button", class: "btn danger", onclick: async () => { if (await confirmBox("Reset the demo?", "This wipes all demo data and starts again.", "Reset", true)) K.api.resetDemo(); } }, "Reset demo") : h("button", { type: "button", class: "btn", onclick: addDemoDrivers }, "Add demo drivers"),
-          h("button", { type: "button", class: "btn primary", onclick: () => saveSettings({ firm: v.firm.value.trim() || s.firm, flag: +v.flag.value, perMile: +v.perMile.value, minimum: +v.minimum.value, nightRate: +v.nightRate.value || 1, boost: Math.max(1, +v.boost.value || 1), boostLabel: v.boostLabel.value.trim(), autoDispatch: v.autoDispatch.checked, mode: v.mode.value, demoDrivers: v.demoDrivers.checked, autoBookings: v.autoBookings.checked }) }, "Save settings")))));
+          h("button", { type: "button", class: "btn primary", onclick: () => saveSettings({ firm: v.firm.value.trim() || s.firm, flag: +v.flag.value, perMile: +v.perMile.value, minimum: +v.minimum.value, nightRate: +v.nightRate.value || 1, boost: Math.max(1, +v.boost.value || 1), boostLabel: v.boostLabel.value.trim(), autoDispatch: v.autoDispatch.checked, mode: v.mode.value, demoDrivers: v.demoDrivers.checked, autoBookings: v.autoBookings.checked, stacking: v.stacking.checked, texts: v.texts.checked, officePhone: v.officePhone.value.trim(), demoCalls: v.demoCalls ? v.demoCalls.checked : s.demoCalls }) }, "Save settings")))));
   }
 
   async function addDemoDrivers() {
@@ -391,15 +487,21 @@ export function mountDispatch(root) {
     if (map) { map.destroy(); map = null; cols = null; }
     if (tab === "drivers") renderDriversTab();
     else if (tab === "rent") renderRentTab();
+    else if (tab === "accounts") renderAccounts(body, render);
+    else if (tab === "quality") renderQuality(body, render);
+    else if (tab === "planner") renderPlanner(body, render);
     else if (tab === "reports") renderReportsTab();
     else renderSettingsTab();
   }
 
+  let callKey = "", lastOffice = 0;
   onChange(() => {
     renderTop(); renderAlerts();
+    const ck = K.calls.filter(c => c.status === "ringing").map(c => c.id).join(",");
+    if (ck !== callKey) { if (ck && ck.length > callKey.length) ping(); callKey = ck; renderCalls(); }
     for (const a of K.alerts) if (!a.resolved && !alerted.has(a.id) && Date.now() - a.at < 120000) { alerted.add(a.id); alarm(); }
     if (tab === "dispatch") { if (!cols) return render(); if (!editing()) renderCols(); else updateMap(); }
-    else if (tab !== "settings" && !editing() && !document.querySelector("#layers .modal")) render();
+    else if (tab !== "settings" && !editing() && !document.querySelector("#layers .modal") && Date.now() - lastOffice > 1500) { lastOffice = Date.now(); render(); }
   });
   setInterval(() => { if (tab === "dispatch" && cols && !editing()) renderJobs(cols.children[0]); }, 15000);
   render();
