@@ -11,11 +11,15 @@ kerb/
   app.html                The app. Pick a screen with the hash:
                             #book (customer)  #driver  #dispatch (dispatch + office)  #demo (all three)
   manifest.webmanifest    Install on phones from the browser
-  data/blackpool.json     Real Blackpool roads, coastline, parks, water and places (built by tools/build_map.py)
+  data/blackpool.json     Real Blackpool roads (named), coastline, parks, water, places, addresses and postcodes
+  data/buildings.json     49k building outlines with heights for the 3D view
+  vendor/maplibre-gl.js   MapLibre GL 4.7.1 (BSD-3, see vendor/MAPLIBRE-LICENSE.txt), the live map engine
+  data/glyphs.json        Map label glyphs (Noto Sans from smp-noto-glyphs, MIT), packed as JSON
   tools/build_map.py      Rebuilds the map data from Overture Maps (OpenStreetMap) extracts
   assets/                 Icon and website screenshots
   css/
     tokens.css            Colours and fonts
+    maplibre-gl.css       Map engine styles
     app.css               All app screens (launcher, demo, map, customer, driver, console, office)
     site.css              Website
   js/
@@ -26,7 +30,8 @@ kerb/
       dom.js              Element builder, icons, modals, toasts
       geo.js              Routes, car positions, ETAs, fares, zones, address search
       mapdata.js          Loads the real map, builds the road graph, A* routing, street/place search
-      map.js              Canvas map renderer with top-down car icons (no tile servers needed)
+      map.js              Live map (MapLibre): street names, zoom, 3D tilt, car and pin markers. No tile server needed
+      mapcanvas.js        Fallback canvas map for devices without WebGL
       sound.js            Offer chime, SOS alarm, vibration
     backend/
       index.js            Picks live or demo
@@ -57,6 +62,7 @@ change the box in `tools/build_map.py`, and rebuild.
 
 ## How it works
 
+- Customers type a postcode, house number and street, place name, or tap "Choose on map" and drag the map under a pin.
 - Jobs go `new → offered → accepted → arrived → pob (on board) → done` (or cancelled / no show).
 - Car positions are stored as a route plus start time, so every screen animates cars without constant writes.
 - The dispatch engine runs in whichever open page holds a short lock. In production it moves to a small server.

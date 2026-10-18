@@ -8,7 +8,7 @@ export function onMapReady(cb) { if (MAP.ready) cb(); else readyCbs.push(cb); }
 const SPEED = { motorway: 27, trunk: 20, primary: 14, secondary: 13, tertiary: 12, unclassified: 9.5, residential: 9, living_street: 5, service: 5 };
 const RANK = { motorway: 0, trunk: 1, primary: 2, secondary: 3, tertiary: 4, unclassified: 5, residential: 6, living_street: 7, service: 8 };
 
-let nodeX, nodeY, adj, nodeRank, comp, grid, roadsByName;
+let nodeX, nodeY, adj, nodeRank, comp, grid, roadsByName, nameGrid;
 const GRID = 150;
 
 export async function loadMap(url = "data/blackpool.json") {
@@ -100,6 +100,19 @@ function build(D) {
   MAP.labels = labels;
   MAP.landmarks = D.landmarks.map(([name, x, y, kind, major]) => ({ name, x, y, kind, major: !!major }));
   MAP.places = D.places.map(([name, cat, x, y]) => ({ name, cat, x, y }));
+  MAP.addresses = (D.addresses || []).map(([name, x, y]) => ({ name, x, y }));
+  MAP.postcodes = (D.postcodes || []).map(([name, x, y]) => ({ name, x, y }));
+  MAP.raw = D;
+  // grid of named road points for "what street is this?"
+  nameGrid = new Map();
+  for (const [ci, ni, pts] of D.roads) {
+    if (ni < 0) continue;
+    for (let i = 0; i < pts.length; i += 2) {
+      const k = Math.floor(pts[i] / GRID) * 1000 + Math.floor(pts[i + 1] / GRID);
+      if (!nameGrid.has(k)) nameGrid.set(k, []);
+      nameGrid.get(k).push([pts[i], pts[i + 1], ni]);
+    }
+  }
   MAP.streets = [...roadsByName.keys()];
   const POPULAR = new Set(["bar", "restaurant", "hotel", "cafe", "train_station", "shopping_mall", "supermarket", "casual_eatery", "theatre_venue", "music_venue", "night_club", "cinema", "fast_food_restaurant", "hospital", "college_or_university", "museum", "casino", "stadium_or_arena"]);
   MAP.popular = MAP.places.filter(p => POPULAR.has(p.cat) && p.name.length < 34);
@@ -211,7 +224,10 @@ export function search(q, limit = 8) {
   const rest = num ? q.slice(num.length).trim() : q;
   const words = rest.split(" ").filter(Boolean);
   const hit = name => { const n = norm(name); return words.every(w => n.includes(w)); };
+  const pcq = q.toUpperCase().replace(/\s+/g, "");
+  if (/^[A-Z]{1,2}\d/.test(pcq)) for (const p of MAP.postcodes) { if (p.name.replace(" ", "").startsWith(pcq)) { out.push({ name: p.name + ", Blackpool", x: p.x, y: p.y, kind: "postcode" }); if (out.length >= 5) break; } }
   for (const l of MAP.landmarks) if (hit(l.name)) out.push({ name: l.name, x: l.x, y: l.y, kind: l.kind });
+  if (num) for (const a of MAP.addresses) { if (out.length >= 4) break; if (norm(a.name).startsWith(q)) out.push({ name: a.name, x: a.x, y: a.y, kind: "address" }); }
   if (rest.length >= 2) {
     for (const s of MAP.streets) {
       if (out.length >= limit) break;
@@ -219,6 +235,7 @@ export function search(q, limit = 8) {
       const p = pointOnStreet(s, num);
       if (p) out.push({ name: (num ? num + " " : "") + s + ", Blackpool", x: p.x, y: p.y, kind: "street" });
     }
+    if (!num) for (const a of MAP.addresses) { if (out.length >= limit) break; if (hit(a.name)) out.push({ name: a.name, x: a.x, y: a.y, kind: "address" }); }
     for (const p of MAP.places) {
       if (out.length >= limit * 2) break;
       if (hit(p.name)) out.push({ name: p.name, x: p.x, y: p.y, kind: p.cat });
@@ -244,6 +261,47 @@ function pointOnStreet(name, num) {
   }
   const p = all[0]; return { x: p[0], y: p[1] };
 }
+// "what's here?" for a point picked on the map
+export function describe(p) {
+  let best = null, bd = 45 * 45, isAddr = false;
+  for (const a of MAP.addresses) { const d = (a.x - p.x) ** 2 + (a.y - p.y) ** 2; if (d < bd) { bd = d; best = a.name; isAddr = true; } }
+  for (const l of MAP.landmarks) { const d = (l.x - p.x) ** 2 + (l.y - p.y) ** 2; if (d < 70 * 70 && d < bd + 900) { bd = d; best = l.name; isAddr = false; } }
+  const street = streetAt(p);
+  if (best) return { name: best, street: isAddr || !street || best.includes(street) ? "Blackpool" : street + ", Blackpool" };
+  return { name: street ? street + ", Blackpool" : "Pinned location", street };
+}
+export function streetAt(p) {
+  const gx = Math.floor(p.x / GRID), gy = Math.floor(p.y / GRID);
+  let best = -1, bd = Infinity;
+  for (let dx = -1; dx <= 1; dx++) for (let dy = -1; dy <= 1; dy++) {
+    const cell = nameGrid.get((gx + dx) * 1000 + gy + dy); if (!cell) continue;
+    for (const [x, y, ni] of cell) { const d = (x - p.x) ** 2 + (y - p.y) ** 2; if (d < bd) { bd = d; best = ni; } }
+  }
+  return best >= 0 && bd < 120 * 120 ? MAP.raw.names[best] : "";
+}
+// GeoJSON for the map engine (lon/lat)
+export function geojson() {
+  const D = MAP.raw;
+  const ll = (x, y) => { const q = toLatLon({ x, y }); return [Math.round(q.lon * 1e6) / 1e6, Math.round(q.lat * 1e6) / 1e6]; };
+  const ring = r => { const out = []; for (let i = 0; i < r.length; i += 2) out.push(ll(r[i], r[i + 1])); if (out.length && (out[0][0] !== out[out.length - 1][0] || out[0][1] !== out[out.length - 1][1])) out.push(out[0]); return out; };
+  const polys = rings => ({ type: "FeatureCollection", features: rings.map(r => ({ type: "Feature", properties: {}, geometry: { type: "Polygon", coordinates: [ring(r)] } })) });
+  const classes = D.classes.map(c => c === "unknown" ? "unclassified" : c);
+  const roads = { type: "FeatureCollection", features: D.roads.map(([ci, ni, pts]) => { const c = []; for (let i = 0; i < pts.length; i += 2) c.push(ll(pts[i], pts[i + 1])); return { type: "Feature", properties: { c: classes[ci], n: ni >= 0 ? D.names[ni] : "" }, geometry: { type: "LineString", coordinates: c } }; }) };
+  const land = { type: "FeatureCollection", features: [{ type: "Feature", properties: {}, geometry: { type: "Polygon", coordinates: D.land.map(ring) } }] };
+  const pts = (list, props) => ({ type: "FeatureCollection", features: list.map(p => ({ type: "Feature", properties: props(p), geometry: { type: "Point", coordinates: ll(p.x, p.y) } })) });
+  return {
+    land, sand: polys(D.sand), parks: polys(D.parks), water: polys(D.water), roads,
+    landmarks: pts(MAP.landmarks, l => ({ n: l.name.replace(/ \(.*\)/, ""), k: l.kind, m: l.major ? 1 : 0 })),
+    places: pts(MAP.popular || [], p => ({ n: p.name, k: p.cat })),
+  };
+}
+export async function buildingsGeojson(url = "data/buildings.json") {
+  const res = await fetch(url); if (!res.ok) throw new Error("buildings " + res.status);
+  const B = await res.json();
+  const ll = (x, y) => { const q = toLatLon({ x, y }); return [Math.round(q.lon * 1e6) / 1e6, Math.round(q.lat * 1e6) / 1e6]; };
+  return { type: "FeatureCollection", features: B.polys.map((r, i) => { const c = []; for (let k = 0; k < r.length; k += 2) c.push(ll(r[k], r[k + 1])); c.push(c[0]); return { type: "Feature", properties: { h: B.h[i] || 0 }, geometry: { type: "Polygon", coordinates: [c] } }; }) };
+}
+
 // best guess at a place mentioned in free text ("from the tower to the airport")
 export function findInText(text) {
   const t = norm(text);

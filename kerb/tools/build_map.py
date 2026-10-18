@@ -102,8 +102,45 @@ LANDMARKS = [
 ]
 landmarks = [[n, *xy(lon, lat), k, m] for (n, lat, lon, k, m) in LANDMARKS]
 
+# real addresses and postcodes from places (businesses, B&Bs, hotels...) for address search
+import re
+addresses, seen_a, pcs = [], set(), {}
+PC = re.compile(r"^[A-Z]{1,2}\d[A-Z\d]? \d[A-Z]{2}$")
+for r in pq.read_table(f"{SRC}/place.parquet").to_pylist():
+    for ad in (r.get("addresses") or [])[:1]:
+        b = r["bbox"]; lon, lat = (b["xmin"] + b["xmax"]) / 2, (b["ymin"] + b["ymax"]) / 2
+        if not (W < lon < E and S < lat < N): continue
+        x, y = xy(lon, lat)
+        pc = (ad.get("postcode") or "").upper().strip()
+        if PC.match(pc): pcs.setdefault(pc, []).append((x, y))
+        ff = (ad.get("freeform") or "").strip().strip(",")
+        if re.match(r"^\d+[A-Za-z]?\s+\w", ff) and len(ff) < 48:
+            label = ff.title().replace("'S", "'s") + (", " + pc if PC.match(pc) else "")
+            if label.lower() not in seen_a:
+                seen_a.add(label.lower()); addresses.append([label, x, y])
+postcodes = [[pc, round(sum(p[0] for p in v) / len(v)), round(sum(p[1] for p in v) / len(v))] for pc, v in sorted(pcs.items())]
+
+# building outlines (separate file, loaded after the map appears)
+bpolys, bh = [], []
+for r in pq.read_table(f"{SRC}/building.parquet").to_pylist():
+    g = wkb.loads(r["geometry"])
+    for poly in polys(g):
+        if not BOX.contains(poly.centroid): continue
+        poly = poly.simplify(0.000006, preserve_topology=False)
+        if poly.is_empty or poly.geom_type != "Polygon": continue
+        pts = proj_line(list(poly.exterior.coords))
+        if len(pts) < 8: continue
+        # drop tiny sheds
+        xs, ys = pts[0::2], pts[1::2]
+        area = abs(sum(xs[i] * ys[i + 1] - xs[i + 1] * ys[i] for i in range(len(xs) - 1))) / 2
+        if area < 14: continue
+        bpolys.append(pts[:-2])
+        h = r.get("height") or ((r.get("num_floors") or 0) * 3) or 0
+        bh.append(round(min(h, 160)))
+json.dump({"v": 1, "polys": bpolys, "h": bh}, open(OUT.replace("blackpool.json", "buildings.json"), "w"), separators=(",", ":"))
+
 w, h = xy(E, S)
 out = {"v": 1, "box": [W, S, E, N], "kx": KX, "ky": KY, "w": w, "h": h, "classes": DRIVE, "names": names, "roads": roads,
-       "land": land, "sand": sand, "parks": parks, "water": water, "places": places, "landmarks": landmarks}
+       "land": land, "sand": sand, "parks": parks, "water": water, "places": places, "landmarks": landmarks, "addresses": addresses, "postcodes": postcodes}
 json.dump(out, open(OUT, "w"), separators=(",", ":"))
-print("roads", len(roads), "names", len(names), "land", len(land), "sand", len(sand), "parks", len(parks), "water", len(water), "places", len(places), "size", w, h)
+print("addresses", len(addresses), "postcodes", len(postcodes), "buildings", len(bpolys)); print("roads", len(roads), "names", len(names), "land", len(land), "sand", len(sand), "parks", len(parks), "water", len(water), "places", len(places), "size", w, h)

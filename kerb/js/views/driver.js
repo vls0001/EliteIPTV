@@ -28,7 +28,7 @@ export function mountDriver(root) {
       h("p", { class: "dim", text: K.api.mode === "demo" ? "Demo: pick a car to drive. The others are driven by the demo." : "Pick your car to sign in." }),
       list.length ? h("div", { class: "d-cars" }, list.map(d => h("button", { type: "button", class: "d-carpick", onclick: () => signIn(d) },
         h("span", { class: "d-call", text: d.call }), h("span", {}, h("b", { text: d.name }), h("small", { class: "dim", text: d.car.colour + " " + d.car.make + " " + d.car.model + " · " + d.car.reg })),
-        d.id === "d07" && K.api.mode === "demo" ? h("span", { class: "pill info", text: "Try me" }) : null)))
+        null)))
         : h("p", { class: "dim", text: "No drivers set up yet. Add them in the office first." })));
   }
   async function signIn(d) {
@@ -149,14 +149,14 @@ export function mountDriver(root) {
 
   function completeCard(main, d, j) {
     const fareIn = h("input", { class: "d-fare-in", id: "d-fare", type: "number", step: "0.1", min: "0", inputmode: "decimal", value: j.fare.toFixed(2), "aria-label": "Fare" });
-    const done = pay => { const f = parseFloat(fareIn.value); if (!(f >= 0)) { toast("Check the fare."); return; } completing = null; complete(j, d, f, pay).then(() => toast(money(f) + " " + pay + " · nice one.", "ok")); };
+    const done = pay => { const f = parseFloat(fareIn.value); if (!(f >= 0)) { toast("Check the fare."); return; } completing = null; complete(j, d, f, pay).then(() => toast("Job complete · " + money(f) + " " + pay, "ok")); };
     fill(main, h("div", { class: "d-complete" },
       h("h2", { text: "Take payment" }),
       h("label", { class: "d-fare-row", for: "d-fare" }, h("span", { text: "£" }), fareIn),
       h("p", { class: "dim center", text: "Quoted " + money(j.fare) + ". Change it if there were extras or waiting time." }),
       h("div", { class: "d-btns" },
-        h("button", { type: "button", class: "d-btn pay", onclick: () => done("cash") }, "💷 Cash"),
-        h("button", { type: "button", class: "d-btn pay", onclick: () => done("card") }, "💳 Card")),
+        h("button", { type: "button", class: "d-btn pay", onclick: () => done("cash") }, icon("pound", 22), "Cash"),
+        h("button", { type: "button", class: "d-btn pay", onclick: () => done("card") }, icon("wallet", 22), "Card")),
       h("button", { type: "button", class: "link-btn center", onclick: () => { completing = null; render(); } }, "Back")));
     setTimeout(() => fareIn.select(), 30);
   }
@@ -176,8 +176,8 @@ export function mountDriver(root) {
       h("div", { class: "seg" }, [["today", "Today"], ["week", "This week"], ["year", "Tax year"]].map(([k, l]) => h("button", { type: "button", class: "seg-btn" + (earnRange === k ? " on" : ""), onclick: () => { earnRange = k; render(); } }, l))),
       h("div", { class: "d-big" }, h("small", { class: "dim", text: "Takings" }), h("b", { text: money(e.total) }), h("span", { class: "dim", text: e.count + " jobs · " + e.miles.toFixed(0) + " paid miles" })),
       h("div", { class: "d-split" },
-        h("div", {}, h("small", { text: "💷 Cash" }), h("b", { text: money(e.cash) })),
-        h("div", {}, h("small", { text: "💳 Card" }), h("b", { text: money(e.card) }))),
+        h("div", {}, h("small", { text: "Cash" }), h("b", { text: money(e.cash) })),
+        h("div", {}, h("small", { text: "Card" }), h("b", { text: money(e.card) }))),
       earnRange !== "year" ? h("div", { class: "d-rent" + (rentRow && rentRow.paid ? " paid" : "") }, h("div", {}, h("small", { class: "dim", text: "Weekly rent to " + K.settings.firm }), h("b", { text: money(rentDue) })), h("span", { class: "pill " + (rentRow && rentRow.paid ? "ok" : "warn"), text: rentRow && rentRow.paid ? "Paid" : "Due" })) : null,
       earnRange === "week" ? h("div", { class: "d-net" }, h("span", { text: "After rent this week" }), h("b", { text: money(e.total - rentDue) })) : null,
       h("div", { class: "lbl", text: "Last 7 days" }),

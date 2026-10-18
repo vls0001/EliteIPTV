@@ -64,7 +64,8 @@ export function mountDispatch(root) {
       h("div", { class: "k-mapctl" },
         h("button", { type: "button", class: "ibtn", "aria-label": "Zoom in", onclick: () => map.zoom(0.8) }, icon("zoomIn", 18)),
         h("button", { type: "button", class: "ibtn", "aria-label": "Zoom out", onclick: () => map.zoom(1.25) }, icon("zoomOut", 18)),
-        h("button", { type: "button", class: "ibtn", "aria-label": "Show whole map", onclick: () => map.fit() }, icon("target", 18))),
+        h("button", { type: "button", class: "ibtn", "aria-label": "Show whole map", onclick: () => map.fit() }, icon("target", 18)),
+        h("button", { type: "button", class: "ibtn tilt", "aria-label": "Tilt map", title: "3D view", onclick: e => { const on = !e.currentTarget.classList.contains("on"); e.currentTarget.classList.toggle("on", on); map.tilt(on); } }, h("span", { class: "tilt-t", text: "3D" }))),
       h("div", { class: "k-legend" }, h("span", {}, h("i", { class: "sdot free" }), "Free"), h("span", {}, h("i", { class: "sdot offered" }), "Offered"), h("span", {}, h("i", { class: "sdot busy" }), "On job"), h("span", {}, h("i", { class: "sdot break" }), "Break"), h("span", {}, h("i", { class: "pin-key" }), "Waiting job")));
     const mtabs = h("div", { class: "k-mtabs" }, [["jobs", "Jobs"], ["map", "Map"], ["drivers", "Cars"]].map(([k, l]) => h("button", { type: "button", class: "seg-btn" + (mobilePane === k ? " on" : ""), onclick: e => { mobilePane = k; cols.dataset.pane = k; e.currentTarget.parentNode.querySelectorAll(".seg-btn").forEach(b => b.classList.toggle("on", b === e.currentTarget)); if (k === "map") setTimeout(() => map.fit(), 30); } }, l)));
     cols = h("div", { class: "k-dispatch", dataset: { pane: mobilePane } }, jobsCol, mapCol, driversCol);
@@ -117,7 +118,7 @@ export function mountDispatch(root) {
         late ? h("span", { class: "pill bad", text: "Waiting " + waitMin + "m" }) : h("span", { class: "pill " + STATUS[j.status].tone, text: j.status === "offered" && od ? "Offered to " + od.call : STATUS[j.status].label })),
       h("div", { class: "jroute" }, h("div", { class: "b-line" }, h("i", { class: "a" }), h("span", { text: j.pickup.name })), h("div", { class: "b-line" }, h("i", { class: "b" }), h("span", { text: j.drop.name }))),
       h("div", { class: "jmeta" }, h("span", { text: j.customer.name || "Customer" }), h("span", { class: "dim", text: VEHICLES[j.vehicle].label + " · " + j.passengers + " pax" }), h("b", { text: money(j.fare) + (j.pay ? " " + j.pay : "") }), d ? h("span", { class: "callchip", text: d.call }) : null));
-    if (j.notes) card.append(h("div", { class: "jnotes", text: "📝 " + j.notes }));
+    if (j.notes) card.append(h("div", { class: "jnotes", text: "Note: " + j.notes }));
     if (sel && ["new", "offered", "accepted", "arrived"].includes(j.status)) card.append(assignBox(j));
     if (sel && j.status === "done" && j.rating) card.append(h("div", { class: "dim small", text: "Rated " + "★".repeat(j.rating) }));
     return card;
@@ -184,7 +185,7 @@ export function mountDispatch(root) {
     const vrow = h("div", { class: "opts" });
     const qbox = h("div", { class: "nb-quote" });
     const hint = h("small", { class: "dim", id: "nb-hint" });
-    const drawV = () => fill(vrow, Object.entries(VEHICLES).map(([k, v]) => h("button", { type: "button", class: "opt" + (vehicle === k ? " on" : ""), onclick: () => { vehicle = k; drawV(); drawQ(); } }, v.icon + " " + v.label)));
+    const drawV = () => fill(vrow, Object.entries(VEHICLES).map(([k, v]) => h("button", { type: "button", class: "opt" + (vehicle === k ? " on" : ""), onclick: () => { vehicle = k; drawV(); drawQ(); } }, v.label)));
     const drawQ = () => {
       if (!pickup || !drop) { fill(qbox, h("span", { class: "dim", text: "Add pick-up and destination to price the job." })); return; }
       const t = when.value ? new Date(when.value).getTime() : Date.now();

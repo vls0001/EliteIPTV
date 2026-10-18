@@ -2,10 +2,23 @@
 import { APP, VEHICLES, STATUS } from "../config.js";
 import { h, fill, icon, toast, store, stamp, fmtTime, confirmBox } from "../lib/dom.js";
 import { searchPlaces, findPlace, quote, money, posOf, etaMinutes, randomSpot, zoneOf, landmark } from "../lib/geo.js";
-import { MAP } from "../lib/mapdata.js";
+import { MAP, describe } from "../lib/mapdata.js";
 const validPick = p => p && p.x >= 0 && p.x <= MAP.w && p.y >= 0 && p.y <= MAP.h && p.x > 1100 ? p : null;
 import { createMap } from "../lib/map.js";
 import { K, onChange, createJob, cancel, rate, nearestEta, carLabel, driversList } from "../store.js";
+
+function vehicleIcon(k) {
+  const paths = {
+    saloon: "M3 15h18M5 15l2-5a2 2 0 0 1 1.9-1.3h6.2A2 2 0 0 1 17 10l2 5M4 15v3h3v-1.5h10V18h3v-3",
+    estate: "M3 15h18M5 15l2-5a2 2 0 0 1 1.9-1.3H20l1 6M4 15v3h3v-1.5h10V18h3v-3",
+    mpv: "M3 16h18M4 16V9a2 2 0 0 1 2-2h11l3 4v5M4 16v2h3v-1.5h10V18h3v-2M8 7v4M13 7v4",
+    wav: "M3 16h18M4 16V8a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v8M4 16v2h3v-1.5h10V18h3v-2M15 9h3v4",
+  };
+  const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  svg.setAttribute("viewBox", "0 0 24 24"); svg.setAttribute("width", "30"); svg.setAttribute("height", "30");
+  svg.innerHTML = '<path d="' + paths[k] + '" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>';
+  return svg;
+}
 
 export function mountBook(root) {
   let profile = store.get("customer", { name: "Alex Morgan", phone: "07700 900123" });
@@ -17,7 +30,7 @@ export function mountBook(root) {
   const mapBox = h("div", { class: "b-map" });
   const sheet = h("div", { class: "b-sheet" });
   const top = h("div", { class: "b-top" });
-  fill(root, h("div", { class: "phone-app book" }, mapBox, top, sheet));
+  fill(root, h("div", { class: "phone-app book" }, mapBox, h("div", { class: "b-centerpin", "aria-hidden": "true" }, h("i"), h("span")), top, sheet));
   root.classList.add("app-root");
   const map = createMap(mapBox, { compact: true });
 
@@ -60,9 +73,12 @@ export function mountBook(root) {
       field = which;
       const list = searchPlaces(input.value, 6);
       sugg.hidden = false;
+      const kindLabel = k => ({ street: "Street", address: "Address", postcode: "Postcode", station: "Station", landmark: "Landmark", hospital: "Hospital", airport: "Airport", area: "Area", shop: "Shopping" })[k] || "Place";
       fill(sugg,
-        which === "pickup" ? h("button", { type: "button", class: "b-sugg-item", onmousedown: e => { e.preventDefault(); const p = randomSpot("central"); pick({ name: "Your location (demo)", x: p.x, y: p.y }); } }, icon("target", 16), h("span", {}, h("b", { text: "Use my location" }), h("small", { text: "Demo: picks a spot in town" }))) : null,
-        list.map(p => h("button", { type: "button", class: "b-sugg-item", onmousedown: e => { e.preventDefault(); pick(p); } }, icon(p.kind === "street" ? "mapPin" : p.kind === "station" ? "list" : "star", 16), h("span", {}, h("b", { text: p.name }), h("small", { text: p.kind === "street" ? "Street" : "Blackpool" })))));
+        which === "pickup" && !input.value ? h("button", { type: "button", class: "b-sugg-item", onmousedown: e => { e.preventDefault(); const p = randomSpot("central"); const d = describe(p); pick({ name: d.name, x: p.x, y: p.y }); } }, icon("target", 16), h("span", {}, h("b", { text: "Current location" }), h("small", { text: K.api.mode === "demo" ? "Demo: a spot in town" : "Uses a spot in town until GPS is on" }))) : null,
+        list.map(p => h("button", { type: "button", class: "b-sugg-item", onmousedown: e => { e.preventDefault(); pick(p); } }, icon(p.kind === "street" || p.kind === "address" || p.kind === "postcode" ? "mapPin" : "star", 16), h("span", {}, h("b", { text: p.name }), h("small", { text: kindLabel(p.kind) })))),
+        input.value && !list.length ? h("div", { class: "b-sugg-empty", text: "No match. Try a street, postcode or place, or choose on the map." }) : null,
+        h("button", { type: "button", class: "b-sugg-item map", onmousedown: e => { e.preventDefault(); startPick(which); } }, icon("mapPin", 16), h("span", {}, h("b", { text: "Choose on map" }), h("small", { text: "Drag the map to the exact spot" }))));
     };
     const pick = p => {
       draft[field] = { name: p.name, x: p.x, y: p.y };
@@ -115,7 +131,7 @@ export function mountBook(root) {
     fill(vehicles, Object.entries(VEHICLES).map(([k, v]) => {
       const q = draft.pickup && draft.drop ? quote(draft.pickup, draft.drop, K.settings, k, draft.when || Date.now()) : null;
       return h("button", { type: "button", class: "b-veh" + (draft.vehicle === k ? " on" : ""), onclick: () => { draft.vehicle = k; updateQuote(); } },
-        h("span", { class: "b-veh-ic", text: v.icon }), h("b", { text: v.label }), h("small", { text: v.seats + " seats" }), h("span", { class: "b-veh-p", text: q ? money(q.fare) : "–" }));
+        h("span", { class: "b-veh-ic" }, vehicleIcon(k)), h("b", { text: v.label }), h("small", { text: v.seats + " seats" }), h("span", { class: "b-veh-p", text: q ? money(q.fare) : "–" }));
     }));
     if (!draft.pickup || !draft.drop) { fill(summary, h("p", { class: "dim", text: "Pick where you're going to see the price." })); bookBtn.disabled = true; bookBtn.textContent = "Book"; return; }
     const q = quote(draft.pickup, draft.drop, K.settings, draft.vehicle, draft.when || Date.now());
@@ -263,20 +279,52 @@ export function mountBook(root) {
     return { pickup, drop, when, passengers, vehicle };
   }
 
+  // ---------- choose on map ----------
+  let pickField = null, pickDesc = null;
+  function startPick(which) {
+    pickField = which; screen = "pick"; homeEls = null;
+    if (document.activeElement) document.activeElement.blur();
+    render();
+    const start = draft[which] || draft.pickup || landmark("Blackpool Tower");
+    map.setFollow(null); map.lookAt(start, 700);
+    setTimeout(() => onPickMove(map.center() || start), 700);
+  }
+  function onPickMove(p) {
+    if (screen !== "pick" || !p) return;
+    pickDesc = Object.assign(describe(p), { x: Math.round(p.x), y: Math.round(p.y) });
+    const t = document.getElementById("pick-name"), s = document.getElementById("pick-street");
+    if (t) t.textContent = pickDesc.name;
+    if (s) s.textContent = pickDesc.street && !pickDesc.name.includes(pickDesc.street) ? pickDesc.street : "Blackpool";
+  }
+  map.onMoveEnd && map.onMoveEnd(onPickMove);
+  function renderPick() {
+    fill(sheet,
+      h("div", { class: "b-grab" }),
+      h("div", { class: "b-pick" },
+        h("small", { class: "dim", text: pickField === "pickup" ? "Set pick-up" : "Set destination" }),
+        h("b", { id: "pick-name", text: pickDesc ? pickDesc.name : "Move the map" }),
+        h("span", { class: "dim", id: "pick-street", text: "Blackpool" })),
+      h("div", { class: "b-actions" },
+        h("button", { type: "button", class: "b-btn", onclick: () => { screen = "home"; render(); } }, "Cancel"),
+        h("button", { type: "button", class: "b-btn primary", onclick: () => { if (!pickDesc) return; draft[pickField] = { name: pickDesc.name, x: pickDesc.x, y: pickDesc.y }; if (pickField === "pickup") store.set("lastPickup", draft.pickup); screen = "home"; render(); } }, "Confirm")));
+  }
+
   // ---------- render ----------
   function render() {
     renderTop();
     const j = current();
-    if (j && screen !== "trips" && screen !== "chat") { screen = "track"; homeEls = null; renderTrack(j); }
+    if (j && screen !== "trips" && screen !== "chat" && screen !== "pick") { screen = "track"; homeEls = null; renderTrack(j); }
     else if (screen === "track") { screen = "home"; renderHome(); }
     else if (screen === "trips") { homeEls = null; renderTrips(); }
     else if (screen === "chat") { homeEls = null; renderChat(); }
+    else if (screen === "pick") { renderPick(); }
     else renderHome();
     root.querySelector(".phone-app").dataset.screen = screen;
     updateMap();
   }
   function updateMap() {
     const j = current();
+    if (screen === "pick") { map.update({ drivers: driversList().filter(d => d.status === "free"), jobs: [], focus: null }); return; }
     if (j && j.driverId && K.drivers[j.driverId]) {
       const d = K.drivers[j.driverId];
       map.update({ drivers: [d], jobs: [j], me: d.id, focus: j.id, onlyRoute: d.id });
@@ -296,6 +344,7 @@ export function mountBook(root) {
   onChange(() => {
     const j = current();
     const key = screen + "|" + (j ? j.id + j.status + (j.driverId || "") : "") + "|" + K.settingsLoaded;
+    if (screen === "pick") { updateMap(); return; }
     if (key !== lastKey || (screen === "track" && !(j && j.status === "done"))) { lastKey = key; if (screen === "home" && !j) { updateQuote(); updateMap(); } else render(); }
     else if (screen === "home") { updateQuote(); updateMap(); }
     else updateMap();
