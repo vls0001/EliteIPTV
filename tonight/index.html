@@ -1,622 +1,603 @@
 <title>Tonight</title>
 <meta name="claude:viewport-fit-sides" content="cover">
-<meta name="description" content="Tonight turns 'who's on later?' into an actual session. Plan it, everyone taps in, the room opens itself.">
+<meta name="description" content="Tonight is a chat app for friend groups where plans turn into voice sessions automatically.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&family=Instrument+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500&display=swap">
 <style>
-/* Layout: one narrow editorial column, oversized wide type, thin rules, mono labels like a session clock. */
+/* Layout: single centred column like a product splash. Logo + wordmark, stacked full-width buttons, link row, then a live app window. Deliberately dark only. */
 :root {
-  --bg: #0B0C14;
-  --surface: #141625;
-  --line: #262940;
-  --fg: #EEEBF6;
-  --muted: #8F90A8;
-  --accent: #FFB547;
-  --accent-ink: #1B1200;
-  --live: #6FD8A4;
-  --maybe: #B9A6FF;
-  --display: "Archivo", "Arial Black", system-ui, sans-serif;
-  --body: "Instrument Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
-  --mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
-  --max: 1120px;
+  --bg: #09090B;
+  --card: #111113;
+  --card-hi: #18181B;
+  --line: #1F1F23;
+  --line-hi: #2A2A30;
+  --fg: #FAFAFA;
+  --muted: #A1A1AA;
+  --dim: #6B6B75;
+  --live: #4ADE80;
+  --plan: #FBBF24;
+  --maybe: #A78BFA;
+  --sans: "Geist", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: "Geist Mono", ui-monospace, "SF Mono", Menlo, monospace;
   color-scheme: dark;
 }
-@media (prefers-color-scheme: light) {
-  :root:not([data-theme="dark"]) {
-    --bg: #F4F3F8; --surface: #FFFFFF; --line: #DCDAE6; --fg: #15142A; --muted: #5E5D76;
-    --accent: #A85400; --accent-ink: #FFFFFF; --live: #19804F; --maybe: #6A4FD9; color-scheme: light;
-  }
-}
-:root[data-theme="light"] {
-  --bg: #F4F3F8; --surface: #FFFFFF; --line: #DCDAE6; --fg: #15142A; --muted: #5E5D76;
-  --accent: #A85400; --accent-ink: #FFFFFF; --live: #19804F; --maybe: #6A4FD9; color-scheme: light;
-}
-
 * { box-sizing: border-box; }
 html { scroll-behavior: smooth; }
-body {
-  background: var(--bg); color: var(--fg);
-  font-family: var(--body); font-size: 17px; line-height: 1.6;
-  -webkit-font-smoothing: antialiased;
-}
+body { background: var(--bg); color: var(--fg); font-family: var(--sans); font-size: 16px; line-height: 1.55; -webkit-font-smoothing: antialiased; }
 body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--bg); }
-a { color: inherit; }
-:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 4px; }
+a { color: inherit; text-decoration: none; }
+button { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--fg); outline-offset: 2px; border-radius: 8px; }
+svg { display: block; }
 
-.wrap {
-  max-width: var(--max); margin: 0 auto;
+.page {
+  max-width: 1040px; margin: 0 auto;
   padding-left: max(16px, env(safe-area-inset-left, 0px));
   padding-right: max(16px, env(safe-area-inset-right, 0px));
 }
-.label {
-  font-family: var(--mono); font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted);
-}
-h1, h2, h3 { font-family: var(--display); text-wrap: balance; margin: 0; }
-h2 { font-size: clamp(34px, 6vw, 64px); line-height: .98; font-weight: 850; font-stretch: 112%; letter-spacing: -.02em; }
-h3 { font-size: 22px; font-weight: 750; font-stretch: 100%; line-height: 1.15; }
-p { margin: 0; }
-.lede { font-size: clamp(18px, 2vw, 21px); color: var(--muted); max-width: 34em; }
+.narrow { max-width: 860px; margin: 0 auto; }
 
-/* Nav */
-header.nav {
-  position: sticky; top: env(safe-area-inset-top, 0px); z-index: 9;
-  background: color-mix(in srgb, var(--bg) 88%, transparent);
-  backdrop-filter: blur(10px); border-bottom: 1px solid var(--line);
-}
-.nav .wrap { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding-block: 14px; }
-.mark { font-family: var(--display); font-weight: 900; font-stretch: 125%; font-size: 22px; text-decoration: none; letter-spacing: -.02em; display: flex; align-items: center; gap: 8px; }
-.mark i { width: 9px; height: 9px; border-radius: 50%; background: var(--accent); display: inline-block; box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 22%, transparent); }
-.nav nav { display: flex; gap: 26px; align-items: center; }
-.nav nav a.link { text-decoration: none; font-size: 15px; color: var(--muted); }
-.nav nav a.link:hover { color: var(--fg); }
-@media (max-width: 760px) { .nav nav a.link { display: none; } }
-
-.btn {
-  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
-  font: 600 15px/1 var(--body); padding: 13px 18px; border-radius: 999px;
-  border: 1px solid var(--line); background: transparent; color: var(--fg); cursor: pointer; text-decoration: none;
-  transition: transform .15s ease, background .15s ease;
-}
-.btn:hover { transform: translateY(-1px); }
-.btn.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+/* Top bar */
+.top { display: flex; justify-content: space-between; align-items: center; padding-block: 24px; }
+.top .mark { width: 40px; height: 40px; }
+.login { display: inline-flex; align-items: center; gap: 10px; padding: 10px 16px; border-radius: 12px; background: var(--card); border: 1px solid var(--line); color: var(--muted); font-weight: 500; }
+.login:hover { color: var(--fg); background: var(--card-hi); }
+.login .ic { width: 22px; height: 22px; border-radius: 6px; background: var(--line-hi); display: grid; place-items: center; }
 
 /* Hero */
-.hero { padding-block: clamp(48px, 9vw, 112px) clamp(40px, 6vw, 80px); }
-.hero .clockline { display: flex; flex-wrap: wrap; gap: 10px 22px; margin-bottom: 28px; }
-.hero .clockline span b { color: var(--fg); font-weight: 500; }
-.hero h1 {
-  font-size: clamp(48px, 10.5vw, 148px); line-height: .9; font-weight: 900; font-stretch: 125%; letter-spacing: -.035em;
+.hero { display: grid; justify-items: center; padding-block: clamp(56px, 12vw, 140px) clamp(36px, 6vw, 64px); }
+.brand { display: flex; align-items: center; gap: clamp(14px, 3vw, 28px); }
+.brand .mark { width: clamp(84px, 16vw, 150px); height: auto; }
+.brand h1 { margin: 0; font-weight: 600; font-size: clamp(56px, 13vw, 128px); letter-spacing: -.045em; line-height: 1; }
+.tag { margin-top: 18px; color: var(--muted); font-size: clamp(16px, 2vw, 18px); text-align: center; max-width: 30em; }
+
+.stack { display: grid; gap: 12px; width: 100%; margin-top: clamp(36px, 6vw, 56px); }
+.big {
+  display: flex; align-items: center; justify-content: center; gap: 14px;
+  min-height: 72px; padding: 16px 20px; border-radius: 16px;
+  background: var(--card); border: 1px solid var(--line);
+  font-size: clamp(18px, 2.6vw, 22px); font-weight: 500; color: #E4E4E7;
+  transition: background .15s ease, border-color .15s ease, transform .15s ease;
 }
-.hero h1 em { font-style: normal; color: var(--accent); }
-.hero-grid { display: grid; grid-template-columns: 1.15fr .85fr; gap: clamp(28px, 5vw, 64px); align-items: end; margin-top: clamp(32px, 5vw, 56px); }
-.hero-grid > * { min-width: 0; }
-.hero .ctas { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 28px; }
-@media (max-width: 860px) { .hero-grid { grid-template-columns: 1fr; } }
+.big:hover { background: var(--card-hi); border-color: var(--line-hi); }
+.big:active { transform: scale(.995); }
+.big svg { width: 26px; height: 26px; color: var(--muted); }
 
-/* Session card */
-.session {
-  background: var(--surface); border: 1px solid var(--line); border-radius: 18px; padding: 22px;
-  display: grid; gap: 16px;
+.links { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px clamp(18px, 4vw, 44px); margin-top: 36px; color: var(--muted); font-size: clamp(15px, 2vw, 18px); font-weight: 500; }
+.links a:hover { color: var(--fg); }
+
+/* App window */
+.window {
+  margin-top: clamp(40px, 6vw, 64px); border: 1px solid var(--line); border-radius: 14px; overflow: hidden;
+  background: #0C0C0E; box-shadow: 0 40px 120px -40px rgba(0,0,0,.9);
+  font-size: 13px;
 }
-.session .top { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
-.session .when { font-family: var(--display); font-weight: 850; font-stretch: 110%; font-size: 30px; line-height: 1; }
-.session .count { font-family: var(--mono); font-size: 13px; color: var(--accent); font-variant-numeric: tabular-nums; white-space: nowrap; }
-.session .what { color: var(--muted); font-size: 15px; }
-.people { display: grid; gap: 8px; }
-.person {
-  display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 12px;
-  border: 1px solid var(--line); background: transparent; color: var(--fg); font: 500 15px var(--body); text-align: left; width: 100%;
+.chrome { display: flex; align-items: center; gap: 8px; height: 40px; padding: 0 10px; border-bottom: 1px solid var(--line); background: var(--card); }
+.chrome .tab { display: flex; align-items: center; gap: 8px; height: 30px; padding: 0 12px; border-radius: 8px; background: var(--bg); border: 1px solid var(--line); font-weight: 500; }
+.chrome .tab .x { color: var(--dim); }
+.chrome .plus { color: var(--dim); font-size: 18px; padding: 0 6px; }
+.chrome .wc { margin-left: auto; display: flex; gap: 16px; color: var(--dim); }
+.chrome .chev { color: var(--dim); width: 28px; height: 28px; display: grid; place-items: center; border-radius: 6px; border: 1px solid var(--line); }
+
+.toolbar { display: flex; align-items: center; gap: 4px; padding: 6px 10px; border-bottom: 1px solid var(--line); background: var(--card); overflow-x: auto; scrollbar-width: none; }
+.toolbar::-webkit-scrollbar { display: none; }
+.tb { display: inline-flex; align-items: center; gap: 6px; padding: 6px 10px; border-radius: 7px; color: var(--muted); background: none; border: 0; cursor: pointer; white-space: nowrap; }
+.tb:hover { color: var(--fg); }
+.tb.on { background: var(--card-hi); color: var(--fg); }
+.tb svg { width: 14px; height: 14px; }
+.tb-sep { width: 1px; height: 18px; background: var(--line-hi); margin: 0 6px; flex: none; }
+.tb-right { margin-left: auto; display: flex; gap: 6px; align-items: center; }
+.chip { display: inline-flex; align-items: center; gap: 6px; padding: 6px 10px; border-radius: 7px; background: var(--bg); border: 1px solid var(--line); font-family: var(--mono); font-size: 12px; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.join-btn { display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 7px; background: var(--card-hi); border: 1px solid var(--line-hi); cursor: pointer; white-space: nowrap; font-weight: 500; }
+.join-btn.live { border-color: color-mix(in srgb, var(--live) 50%, transparent); color: var(--live); }
+
+.app { display: grid; grid-template-columns: 56px 200px minmax(0, 1fr) 180px; height: 460px; }
+.rail { border-right: 1px solid var(--line); padding: 10px 0; display: grid; align-content: start; justify-items: center; gap: 8px; }
+.srv { width: 38px; height: 38px; border-radius: 12px; display: grid; place-items: center; font-weight: 600; font-size: 13px; background: var(--card-hi); color: var(--muted); border: 0; cursor: pointer; position: relative; }
+.srv.on { background: var(--fg); color: var(--bg); border-radius: 10px; }
+.srv.on::before { content: ""; position: absolute; left: -9px; width: 4px; height: 22px; border-radius: 0 4px 4px 0; background: var(--fg); }
+.srv .badge { position: absolute; right: -3px; bottom: -3px; min-width: 16px; height: 16px; border-radius: 8px; background: var(--plan); color: #000; font-size: 10px; display: grid; place-items: center; padding: 0 4px; border: 2px solid #0C0C0E; }
+.rail hr { width: 24px; border: 0; border-top: 1px solid var(--line-hi); margin: 2px 0; }
+
+.side { border-right: 1px solid var(--line); padding: 10px; display: grid; align-content: start; gap: 8px; min-width: 0; }
+.search { display: flex; align-items: center; gap: 8px; padding: 7px 10px; border-radius: 8px; background: var(--card); border: 1px solid var(--line); color: var(--dim); }
+.search svg { width: 13px; height: 13px; }
+.grp { display: flex; justify-content: space-between; align-items: center; color: var(--muted); font-weight: 500; padding: 6px 4px 2px; }
+.grp .n { font-family: var(--mono); font-size: 11px; color: var(--dim); background: var(--card-hi); padding: 1px 6px; border-radius: 5px; }
+.ch { display: flex; align-items: center; gap: 8px; padding: 6px 8px; border-radius: 7px; color: var(--muted); background: none; border: 0; cursor: pointer; text-align: left; width: 100%; }
+.ch:hover { background: var(--card); color: var(--fg); }
+.ch.on { background: var(--card-hi); color: var(--fg); }
+.ch .h { color: var(--dim); font-family: var(--mono); width: 12px; }
+.ch .dotp { margin-left: auto; width: 6px; height: 6px; border-radius: 50%; background: var(--plan); }
+.vc { display: grid; gap: 4px; padding-left: 28px; }
+.vc span { display: flex; align-items: center; gap: 6px; color: var(--muted); font-size: 12px; }
+.vc i { width: 16px; height: 16px; border-radius: 50%; display: inline-block; flex: none; }
+
+.chat { display: grid; grid-template-rows: auto minmax(0, 1fr) auto; min-width: 0; }
+.chat-hd { display: flex; align-items: center; gap: 8px; padding: 10px 14px; border-bottom: 1px solid var(--line); font-weight: 600; }
+.chat-hd .h { color: var(--dim); font-family: var(--mono); }
+.chat-hd .sub { color: var(--dim); font-weight: 400; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.feed { overflow-y: auto; padding: 14px; display: grid; align-content: end; gap: 14px; scrollbar-width: thin; scrollbar-color: var(--line-hi) transparent; }
+.msg { display: grid; grid-template-columns: 32px minmax(0, 1fr); gap: 10px; }
+.av { width: 32px; height: 32px; border-radius: 50%; display: grid; place-items: center; font-weight: 600; font-size: 12px; color: #09090B; }
+.msg .who { display: flex; gap: 8px; align-items: baseline; }
+.msg .who b { font-weight: 600; }
+.msg .who time { color: var(--dim); font-size: 11px; font-family: var(--mono); }
+.msg p { margin: 2px 0 0; color: #D4D4D8; overflow-wrap: anywhere; }
+
+.plancard { margin-top: 8px; border: 1px solid var(--line-hi); border-radius: 12px; background: var(--card); padding: 12px; display: grid; gap: 10px; max-width: 360px; }
+.plancard .pt { display: flex; justify-content: space-between; gap: 10px; align-items: baseline; }
+.plancard .pt b { font-size: 15px; }
+.plancard .pt span { font-family: var(--mono); font-size: 11px; color: var(--plan); white-space: nowrap; }
+.plancard .ppl { color: var(--muted); font-size: 12px; }
+.rsvp { display: flex; gap: 6px; }
+.rsvp button { flex: 1; padding: 7px 0; border-radius: 8px; border: 1px solid var(--line-hi); background: var(--bg); cursor: pointer; font-weight: 500; color: var(--muted); }
+.rsvp button:hover { color: var(--fg); }
+.rsvp button[aria-pressed="true"][data-v="in"] { border-color: var(--live); color: var(--live); }
+.rsvp button[aria-pressed="true"][data-v="maybe"] { border-color: var(--maybe); color: var(--maybe); }
+.rsvp button[aria-pressed="true"][data-v="out"] { border-color: var(--dim); color: var(--fg); }
+
+.catch { border: 1px solid var(--line-hi); border-radius: 12px; background: var(--card); padding: 12px; display: grid; gap: 6px; }
+.catch .lbl { font-family: var(--mono); font-size: 11px; color: var(--dim); text-transform: uppercase; letter-spacing: .06em; }
+.catch ul { margin: 0; padding-left: 16px; color: #D4D4D8; display: grid; gap: 4px; }
+
+.composer { padding: 10px 14px 14px; }
+.composer form { display: flex; gap: 8px; align-items: center; background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 4px 4px 4px 12px; }
+.composer input { flex: 1; min-width: 0; background: none; border: 0; outline: 0; color: var(--fg); font: inherit; padding: 6px 0; }
+.composer input::placeholder { color: var(--dim); }
+.composer button { border: 0; background: var(--card-hi); border-radius: 7px; padding: 6px 10px; cursor: pointer; color: var(--muted); }
+
+.members { border-left: 1px solid var(--line); padding: 12px 10px; display: grid; align-content: start; gap: 6px; }
+.members .grp { padding-top: 0; }
+.mem { display: flex; align-items: center; gap: 8px; padding: 4px; }
+.mem .av { width: 26px; height: 26px; font-size: 11px; position: relative; }
+.mem .av::after { content: ""; position: absolute; right: -2px; bottom: -2px; width: 9px; height: 9px; border-radius: 50%; border: 2px solid #0C0C0E; background: var(--st, var(--dim)); }
+.mem div { min-width: 0; }
+.mem b { font-weight: 500; display: block; }
+.mem small { color: var(--dim); display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 11px; }
+
+@media (max-width: 900px) { .app { grid-template-columns: 56px 190px minmax(0, 1fr); } .members { display: none; } }
+@media (max-width: 600px) {
+  .app { grid-template-columns: 52px minmax(0, 1fr); height: 520px; }
+  .side { display: none; }
+  .chrome .wc { display: none; }
+  .tb .t { display: none; }
 }
-button.person { cursor: pointer; }
-button.person:hover { border-color: var(--muted); }
-.av { width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; font: 600 13px var(--body); color: var(--bg); flex: none; }
-.person .name { flex: 1; min-width: 0; }
-.pill { font-family: var(--mono); font-size: 11px; letter-spacing: .06em; text-transform: uppercase; padding: 4px 8px; border-radius: 999px; border: 1px solid currentColor; }
-.pill.in { color: var(--live); }
-.pill.maybe { color: var(--maybe); }
-.pill.out { color: var(--muted); }
-.session .foot { display: flex; align-items: center; gap: 10px; font-size: 14px; color: var(--muted); border-top: 1px dashed var(--line); padding-top: 14px; }
-.dot { width: 8px; height: 8px; border-radius: 50%; background: var(--live); flex: none; }
-@media (prefers-reduced-motion: no-preference) { .dot.pulse { animation: pulse 1.8s ease-in-out infinite; } }
-@keyframes pulse { 50% { box-shadow: 0 0 0 6px color-mix(in srgb, var(--live) 25%, transparent); } }
 
-/* Problem band */
-.band { border-block: 1px solid var(--line); }
-.band .wrap { padding-block: clamp(36px, 6vw, 64px); display: grid; grid-template-columns: repeat(3, 1fr); gap: 28px; }
-.stat b { display: block; font-family: var(--display); font-weight: 900; font-stretch: 120%; font-size: clamp(40px, 6vw, 72px); line-height: 1; letter-spacing: -.03em; font-variant-numeric: tabular-nums; }
-.stat span { color: var(--muted); font-size: 15px; display: block; margin-top: 8px; max-width: 22em; }
-@media (max-width: 700px) { .band .wrap { grid-template-columns: 1fr; } }
+/* Sections below */
+section { padding-block: clamp(72px, 10vw, 120px) 0; }
+.sh { display: grid; gap: 10px; justify-items: center; text-align: center; margin-bottom: 36px; }
+.sh .k { font-family: var(--mono); font-size: 12px; color: var(--dim); letter-spacing: .08em; text-transform: uppercase; }
+.sh h2 { margin: 0; font-size: clamp(30px, 5vw, 46px); font-weight: 600; letter-spacing: -.035em; line-height: 1.05; text-wrap: balance; }
+.sh p { color: var(--muted); max-width: 34em; margin: 0; }
 
-section.block { padding-block: clamp(64px, 10vw, 128px); }
-.block-head { display: grid; gap: 18px; margin-bottom: clamp(36px, 5vw, 56px); }
+.grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.feat { background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 22px; display: grid; gap: 10px; align-content: start; }
+.feat .fi { width: 34px; height: 34px; border-radius: 10px; background: var(--card-hi); border: 1px solid var(--line-hi); display: grid; place-items: center; color: var(--muted); }
+.feat .fi svg { width: 17px; height: 17px; }
+.feat h3 { margin: 0; font-size: 17px; font-weight: 600; letter-spacing: -.01em; }
+.feat p { margin: 0; color: var(--muted); font-size: 15px; }
+@media (max-width: 820px) { .grid { grid-template-columns: 1fr; } }
 
-/* Steps */
-.steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0; border-top: 1px solid var(--line); }
-.step { padding: 26px 24px 8px 0; display: grid; gap: 12px; align-content: start; }
-.step + .step { padding-left: 24px; border-left: 1px solid var(--line); }
-.step .n { font-family: var(--mono); color: var(--accent); font-size: 13px; }
-.step p { color: var(--muted); font-size: 16px; }
-.step code { font-family: var(--mono); font-size: 14px; color: var(--fg); background: var(--surface); border: 1px solid var(--line); padding: 2px 6px; border-radius: 6px; }
-@media (max-width: 760px) {
-  .steps { grid-template-columns: 1fr; }
-  .step, .step + .step { padding: 22px 0; border-left: 0; border-bottom: 1px solid var(--line); }
-}
-
-/* Demo */
-.demo { display: grid; grid-template-columns: .9fr 1.1fr; gap: clamp(24px, 4vw, 48px); align-items: start; }
-.demo > * { min-width: 0; }
-.chips { display: flex; flex-wrap: wrap; gap: 8px; }
-.chip {
-  font: 500 14px var(--mono); padding: 9px 14px; border-radius: 999px; border: 1px solid var(--line);
-  background: transparent; color: var(--fg); cursor: pointer; font-variant-numeric: tabular-nums;
-}
-.chip[aria-pressed="true"] { background: var(--fg); color: var(--bg); border-color: var(--fg); }
-.demo .controls { display: grid; gap: 22px; }
-.demo .controls > div { display: grid; gap: 10px; }
-.outcome { margin-top: 4px; padding: 18px; border-radius: 14px; border: 1px solid var(--line); background: var(--surface); font-size: 16px; }
-.outcome strong { color: var(--accent); font-weight: 600; }
-.sample { font-family: var(--mono); font-size: 11px; color: var(--muted); letter-spacing: .06em; text-transform: uppercase; }
-@media (max-width: 860px) { .demo { grid-template-columns: 1fr; } }
-
-/* Catch-up */
-.catch { display: grid; grid-template-columns: 1fr 1fr; gap: clamp(24px, 4vw, 56px); align-items: start; }
-.catch > * { min-width: 0; }
-.toggle { display: inline-flex; border: 1px solid var(--line); border-radius: 999px; padding: 4px; gap: 4px; }
-.toggle button { font: 500 14px var(--body); padding: 8px 14px; border-radius: 999px; border: 0; background: transparent; color: var(--muted); cursor: pointer; }
-.toggle button[aria-selected="true"] { background: var(--surface); color: var(--fg); box-shadow: 0 0 0 1px var(--line); }
-.feed { background: var(--surface); border: 1px solid var(--line); border-radius: 18px; padding: 20px; display: grid; gap: 14px; }
-.feed .hd { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
-.msgs { display: grid; gap: 10px; max-height: 300px; overflow: hidden; position: relative; mask-image: linear-gradient(to bottom, #000 70%, transparent); -webkit-mask-image: linear-gradient(to bottom, #000 70%, transparent); }
-.msg { font-size: 14px; line-height: 1.45; }
-.msg b { font-weight: 600; margin-right: 6px; }
-.msg span { color: var(--muted); }
-.summary { display: grid; gap: 12px; margin: 0; padding: 0; list-style: none; }
-.summary li { display: grid; grid-template-columns: 20px 1fr; gap: 10px; font-size: 15px; }
-.summary li::before { content: "→"; color: var(--accent); font-family: var(--mono); }
-.summary .src { color: var(--muted); font-family: var(--mono); font-size: 12px; display: block; margin-top: 2px; }
-
-/* Rooms */
-.rooms { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px; }
-.room { border: 1px solid var(--line); border-radius: 16px; padding: 18px; display: grid; gap: 12px; align-content: start; }
-.room .rh { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
-.room .rh .label { color: var(--live); display: flex; align-items: center; gap: 6px; }
-.room .row { display: flex; align-items: center; gap: 10px; font-size: 14px; }
-.room .row .av { width: 24px; height: 24px; font-size: 11px; }
-.room .row span { color: var(--muted); }
-
-/* Discord */
-.bot { display: grid; grid-template-columns: 1fr 1fr; gap: clamp(24px, 4vw, 56px); align-items: center; }
-.bot > * { min-width: 0; }
-.term { background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 20px; font-family: var(--mono); font-size: 14px; line-height: 1.7; overflow-x: auto; }
-.term .c { color: var(--accent); }
-.term .m { color: var(--muted); }
-@media (max-width: 860px) { .catch, .bot { grid-template-columns: 1fr; } }
-
-/* Pricing */
-.plans { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
-.plan { border: 1px solid var(--line); border-radius: 18px; padding: 24px; display: grid; gap: 16px; align-content: start; }
-.plan.featured { border-color: var(--accent); background: var(--surface); }
-.plan .price { font-family: var(--display); font-weight: 900; font-stretch: 115%; font-size: 48px; line-height: 1; letter-spacing: -.03em; font-variant-numeric: tabular-nums; }
-.plan .price small { font-family: var(--body); font-weight: 500; font-size: 15px; color: var(--muted); letter-spacing: 0; }
-.plan ul { margin: 0; padding: 0; list-style: none; display: grid; gap: 9px; font-size: 15px; }
+.plans { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.plan { background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 24px; display: grid; gap: 14px; align-content: start; }
+.plan.hl { border-color: var(--line-hi); background: linear-gradient(180deg, var(--card-hi), var(--card)); }
+.plan .nm { display: flex; justify-content: space-between; align-items: center; color: var(--muted); font-weight: 500; }
+.plan .nm .pop { font-family: var(--mono); font-size: 11px; color: var(--bg); background: var(--fg); padding: 2px 8px; border-radius: 6px; }
+.plan .pr { font-size: 44px; font-weight: 600; letter-spacing: -.04em; line-height: 1; font-variant-numeric: tabular-nums; }
+.plan .pr small { font-size: 15px; color: var(--dim); font-weight: 400; letter-spacing: 0; }
+.plan ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; color: #D4D4D8; font-size: 15px; }
 .plan li { display: grid; grid-template-columns: 18px 1fr; gap: 8px; }
-.plan li::before { content: "+"; font-family: var(--mono); color: var(--accent); }
-.plan .who { color: var(--muted); font-size: 15px; }
-@media (max-width: 860px) { .plans { grid-template-columns: 1fr; } }
+.plan li::before { content: "✓"; color: var(--dim); }
+.plan .big { min-height: 48px; font-size: 16px; margin-top: 4px; }
+@media (max-width: 820px) { .plans { grid-template-columns: 1fr; } }
 
-/* FAQ */
-.faq { border-top: 1px solid var(--line); }
-.faq details { border-bottom: 1px solid var(--line); padding-block: 20px; }
-.faq summary { cursor: pointer; list-style: none; display: flex; justify-content: space-between; gap: 16px; font-weight: 600; font-size: 18px; }
-.faq summary::-webkit-details-marker { display: none; }
-.faq summary::after { content: "+"; font-family: var(--mono); color: var(--accent); }
-.faq details[open] summary::after { content: "–"; }
-.faq details p { color: var(--muted); margin-top: 12px; max-width: 40em; }
+.dl { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; }
+.dl .big { min-height: 64px; font-size: 17px; flex-direction: column; gap: 2px; }
+.dl .big small { color: var(--dim); font-size: 12px; font-family: var(--mono); }
 
-/* Waitlist */
-.join { border-top: 1px solid var(--line); }
-.join h2 { font-size: clamp(44px, 9vw, 120px); font-stretch: 125%; font-weight: 900; line-height: .9; }
-.form { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 32px; max-width: 560px; }
-.form input {
-  flex: 1 1 240px; min-width: 0; font: 400 16px var(--body); color: var(--fg); background: var(--surface);
-  border: 1px solid var(--line); border-radius: 999px; padding: 13px 18px;
-}
-.form input::placeholder { color: var(--muted); }
-.form-note { margin-top: 14px; font-size: 14px; color: var(--muted); min-height: 1.4em; }
-.form-note.ok { color: var(--live); }
+.wl { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 12px; }
+.wl input { flex: 1 1 240px; min-width: 0; min-height: 56px; border-radius: 14px; background: var(--card); border: 1px solid var(--line); color: var(--fg); font: inherit; font-size: 16px; padding: 0 18px; }
+.wl input::placeholder { color: var(--dim); }
+.wl button { min-height: 56px; padding: 0 24px; border-radius: 14px; border: 0; background: var(--fg); color: var(--bg); font-weight: 600; font-size: 16px; cursor: pointer; }
+.note { color: var(--dim); font-size: 14px; margin-top: 12px; text-align: center; min-height: 1.4em; }
+.note.ok { color: var(--live); }
 
-footer { border-top: 1px solid var(--line); }
-footer .wrap { padding-block: 28px; display: flex; flex-wrap: wrap; justify-content: space-between; gap: 12px; }
+footer { margin-top: clamp(80px, 10vw, 120px); border-top: 1px solid var(--line); }
+footer .page { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 16px; padding-block: 28px; color: var(--dim); font-size: 14px; }
+footer .fl { display: flex; gap: 20px; flex-wrap: wrap; }
+footer a:hover { color: var(--fg); }
+
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } * { transition: none !important; } }
 </style>
 
-<header class="nav">
-  <div class="wrap">
-    <a class="mark" href="#top"><i aria-hidden="true"></i>tonight</a>
-    <nav>
-      <a class="link" href="#how">How it works</a>
-      <a class="link" href="#catchup">Catch-up</a>
-      <a class="link" href="#pricing">Pricing</a>
-      <a class="btn primary" href="#join">Join the waitlist</a>
-    </nav>
-  </div>
-</header>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <symbol id="logo" viewBox="0 0 120 120">
+      <path fill="#FAFAFA" d="M70 10a50 50 0 1 0 40 74A44 44 0 0 1 70 10z"/>
+      <circle cx="80" cy="56" r="6" fill="#FAFAFA"/>
+      <circle cx="98" cy="56" r="6" fill="#FAFAFA" opacity=".55"/>
+      <circle cx="116" cy="56" r="4.5" fill="#FAFAFA" opacity=".25"/>
+    </symbol>
+  </defs>
+</svg>
 
-<main id="top">
-  <section class="hero">
-    <div class="wrap">
-      <div class="clockline label">
-        <span>Your time <b id="now">--:--</b></span>
-        <span>Next session <b id="next">21:00</b></span>
-        <span>Works with Discord</span>
+<div class="page">
+  <header class="top">
+    <a href="#top" aria-label="Tonight home"><svg class="mark" viewBox="0 0 120 120"><use href="#logo"/></svg></a>
+    <a class="login" href="#get"><span class="ic"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h13M11 6l6 6-6 6M21 4v16"/></svg></span>Login</a>
+  </header>
+
+  <main id="top">
+    <div class="hero narrow">
+      <div class="brand">
+        <svg class="mark" viewBox="0 0 120 120" aria-hidden="true"><use href="#logo"/></svg>
+        <h1>Tonight</h1>
       </div>
-      <h1>Stop saying<br>“on later?”<br><em>Be on.</em></h1>
-      <div class="hero-grid">
-        <div>
-          <p class="lede">Tonight is a chat app built around plans. Call a time, your friends tap in, and the voice room opens itself when it's time, with everyone pinged. No more 400-message group chats that end with nobody online.</p>
-          <div class="ctas">
-            <a class="btn primary" href="#join">Get early access</a>
-            <a class="btn" href="#how">See how it works</a>
+      <p class="tag">The chat app where plans turn into sessions. Call a time, friends tap in, and the voice room opens itself.</p>
+
+      <nav class="stack" aria-label="Main">
+        <a class="big" href="#get">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M7 10l5 5 5-5M4 19h16"/></svg>
+          Download
+        </a>
+        <a class="big" href="#pro">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.5l2.9 6 6.6.9-4.8 4.6 1.2 6.5L12 17.4l-5.9 3.1 1.2-6.5L2.5 9.4l6.6-.9z"/></svg>
+          Get Pro
+        </a>
+        <a class="big" href="#features">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5a2 2 0 0 1 2-2h13v16H6a2 2 0 0 0-2 2z"/><path d="M4 21V5M8 7h7"/></svg>
+          Documentation
+        </a>
+      </nav>
+
+      <nav class="links" aria-label="Info">
+        <a href="#features">About</a>
+        <a href="#privacy">Privacy</a>
+        <a href="#privacy">Terms</a>
+        <a href="#privacy">Acceptable Use</a>
+        <a href="#get">Status</a>
+      </nav>
+    </div>
+
+    <!-- Live app window -->
+    <div class="window" role="region" aria-label="Tonight app preview with sample friends">
+      <div class="chrome">
+        <span class="chev"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M6 9l6 6 6-6"/></svg></span>
+        <span class="tab"><span style="color:var(--dim)">#</span><span id="tabName">squad</span><span class="x">×</span></span>
+        <span class="plus">+</span>
+        <span class="wc"><span>–</span><span>□</span><span>×</span></span>
+      </div>
+      <div class="toolbar">
+        <button class="tb on" type="button"><svg viewBox="0 0 24 24" fill="currentColor"><rect x="3" y="3" width="8" height="8" rx="2"/><rect x="13" y="3" width="8" height="8" rx="2"/><rect x="3" y="13" width="8" height="8" rx="2"/><rect x="13" y="13" width="8" height="8" rx="2"/></svg><span class="t">Servers</span></button>
+        <button class="tb" type="button"><svg viewBox="0 0 24 24" fill="currentColor"><circle cx="9" cy="8" r="4"/><path d="M1 21a8 8 0 0 1 16 0z"/><circle cx="18" cy="9" r="3" opacity=".6"/></svg><span class="t">Friends</span></button>
+        <span class="tb-sep"></span>
+        <button class="tb" type="button" id="planBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg><span class="t">Plan</span></button>
+        <button class="tb" type="button" id="catchBtn"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l1.8 5.2L19 9l-5.2 1.8L12 16l-1.8-5.2L5 9l5.2-1.8z"/><path d="M19 14l.9 2.1L22 17l-2.1.9L19 20l-.9-2.1L16 17l2.1-.9z"/></svg><span class="t">Catch-up</span></button>
+        <div class="tb-right">
+          <span class="chip"><svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm1 10.4V6h-2v7.6l5 3 1-1.7z"/></svg><span id="cd">--h --m</span></span>
+          <button class="join-btn" type="button" id="joinBtn">Join voice</button>
+        </div>
+      </div>
+
+      <div class="app">
+        <div class="rail">
+          <button class="srv on" type="button" aria-label="The Lads server">TL</button>
+          <button class="srv" type="button" aria-label="Uni Flat server">UF<span class="badge">2</span></button>
+          <button class="srv" type="button" aria-label="Sunday League server">SL</button>
+          <hr>
+          <button class="srv" type="button" aria-label="Add a server" style="color:var(--live)">+</button>
+        </div>
+
+        <aside class="side">
+          <div class="search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg>Search The Lads…</div>
+          <div class="grp"><span>Channels</span><span class="n">4</span></div>
+          <div id="channels">
+            <button class="ch" type="button" data-c="general"><span class="h">#</span>general</button>
+            <button class="ch on" type="button" data-c="squad"><span class="h">#</span>squad<span class="dotp" title="Plan tonight"></span></button>
+            <button class="ch" type="button" data-c="clips"><span class="h">#</span>clips</button>
+            <button class="ch" type="button" data-c="football"><span class="h">#</span>football</button>
+          </div>
+          <div class="grp"><span>Voice</span><span class="n">2</span></div>
+          <div class="ch" style="cursor:default"><span class="h">🔊</span>The sofa</div>
+          <div class="vc">
+            <span><i style="background:#FBBF24"></i>Sam · watching F1</span>
+            <span><i style="background:#4ADE80"></i>Priya · cooking</span>
+          </div>
+          <div class="ch" style="cursor:default"><span class="h">🔊</span>Squad <span style="margin-left:auto;color:var(--dim);font-family:var(--mono);font-size:11px">21:00</span></div>
+        </aside>
+
+        <div class="chat">
+          <div class="chat-hd"><span class="h">#</span><span id="chName">squad</span><span class="sub" id="chSub">· plans and sessions</span></div>
+          <div class="feed" id="feed" aria-live="polite"></div>
+          <div class="composer">
+            <form id="composer" autocomplete="off">
+              <label for="msg" style="position:absolute;left:-9999px">Message</label>
+              <input id="msg" placeholder="Message #squad  ·  try “/tonight 10pm movie”">
+              <button type="submit">Send</button>
+            </form>
           </div>
         </div>
-        <div class="session" aria-label="Example session card">
-          <div class="top">
-            <span class="when" id="heroWhen">Fri 21:00</span>
-            <span class="count" id="countdown">starts in --:--:--</span>
-          </div>
-          <p class="what">Helldivers with the lads · called by Sam</p>
-          <div class="people">
-            <div class="person"><span class="av" style="background:#FFB547">S</span><span class="name">Sam</span><span class="pill in">In</span></div>
-            <div class="person"><span class="av" style="background:#6FD8A4">P</span><span class="name">Priya</span><span class="pill in">In</span></div>
-            <div class="person"><span class="av" style="background:#B9A6FF">J</span><span class="name">Jordan</span><span class="pill maybe">Maybe</span></div>
-            <div class="person"><span class="av" style="background:#7FC3FF">M</span><span class="name">Marcus</span><span class="pill in">In</span></div>
-          </div>
-          <div class="foot"><span class="dot pulse" aria-hidden="true"></span>Room opens automatically. Jordan gets a nudge at 20:45.</div>
-        </div>
+
+        <aside class="members">
+          <div class="grp"><span>Online</span><span class="n">4</span></div>
+          <div class="mem"><span class="av" style="background:#FBBF24;--st:var(--live)">S</span><div><b>Sam</b><small>watching F1</small></div></div>
+          <div class="mem"><span class="av" style="background:#4ADE80;--st:var(--live)">P</span><div><b>Priya</b><small>cooking, on mic</small></div></div>
+          <div class="mem"><span class="av" style="background:#60A5FA;--st:var(--plan)">M</span><div><b>Marcus</b><small>in at 21:00</small></div></div>
+          <div class="mem"><span class="av" style="background:#A78BFA;--st:var(--maybe)">J</span><div><b>Jordan</b><small>maybe, at work</small></div></div>
+          <div class="grp" style="margin-top:8px"><span>Offline</span><span class="n">1</span></div>
+          <div class="mem" style="opacity:.5"><span class="av" style="background:#F472B6">A</span><div><b>Aisha</b><small>last on 2h ago</small></div></div>
+        </aside>
       </div>
     </div>
-  </section>
 
-  <div class="band">
-    <div class="wrap">
-      <div class="stat"><b>412</b><span>messages in the group chat about “maybe playing tonight”</span></div>
-      <div class="stat"><b>0</b><span>people actually in the voice channel at 9pm</span></div>
-      <div class="stat"><b>1 tap</b><span>is all it takes with Tonight to say you're in</span></div>
-    </div>
-  </div>
+    <section id="features">
+      <div class="sh">
+        <span class="k">What's different</span>
+        <h2>Everything Discord does. Plus the part where people actually show up.</h2>
+      </div>
+      <div class="grid">
+        <div class="feat">
+          <span class="fi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg></span>
+          <h3>Plans that open rooms</h3>
+          <p>Type <code style="font-family:var(--mono);color:var(--fg)">/tonight 9pm</code>. Friends tap In, Maybe or Out. At 9 the voice room opens and pings everyone who's in.</p>
+        </div>
+        <div class="feat">
+          <span class="fi"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l1.8 5.2L19 9l-5.2 1.8L12 16l-1.8-5.2L5 9l5.2-1.8z"/></svg></span>
+          <h3>Catch-up</h3>
+          <p>Missed 400 messages? Get the five lines that matter, including anything that mentions you.</p>
+        </div>
+        <div class="feat">
+          <span class="fi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 12V9a8 8 0 0 1 16 0v3"/><rect x="2" y="12" width="5" height="8" rx="2"/><rect x="17" y="12" width="5" height="8" rx="2"/></svg></span>
+          <h3>Hangout rooms</h3>
+          <p>Always-on voice rooms you can drop into. Status shows what people are doing, so you know when to join.</p>
+        </div>
+        <div class="feat">
+          <span class="fi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="13" rx="2"/><path d="M8 21h8M12 17v4"/></svg></span>
+          <h3>1080p screen share</h3>
+          <p>Stream games and films at 60fps to the whole room, with no lag on the free plan for up to 10 people.</p>
+        </div>
+        <div class="feat">
+          <span class="fi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 12h8M12 8v8"/><rect x="3" y="3" width="18" height="18" rx="5"/></svg></span>
+          <h3>Works with Discord</h3>
+          <p>Add the Tonight bot to your existing server and keep everyone where they are until they're ready to move.</p>
+        </div>
+        <div class="feat" id="privacy">
+          <span class="fi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg></span>
+          <h3>Private by default</h3>
+          <p>No ads and no selling your data. DMs are end-to-end encrypted. Server owners can export everything.</p>
+        </div>
+      </div>
+    </section>
 
-  <section class="block" id="how">
-    <div class="wrap">
-      <div class="block-head">
-        <span class="label">How it works</span>
-        <h2>Three steps from “anyone?” to everyone.</h2>
-      </div>
-      <div class="steps">
-        <div class="step">
-          <span class="n">Step 1</span>
-          <h3>Call it</h3>
-          <p>Pick a time and what you're doing. Type <code>9pm valorant</code> and Tonight works out the rest.</p>
-        </div>
-        <div class="step">
-          <span class="n">Step 2</span>
-          <h3>Everyone taps in</h3>
-          <p>Friends get one notification with three buttons: In, Maybe, Out. No scrolling, no reading back.</p>
-        </div>
-        <div class="step">
-          <span class="n">Step 3</span>
-          <h3>The room opens</h3>
-          <p>At the set time the voice room goes live and pings everyone who said yes. Maybes get a nudge 15 minutes before.</p>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <section class="block" style="padding-top:0">
-    <div class="wrap demo">
-      <div class="controls">
-        <div class="block-head" style="margin:0">
-          <span class="label">Try it</span>
-          <h2>Plan tonight.</h2>
-          <p class="lede">Pick a time, then tap each friend to change their answer.</p>
-        </div>
-        <div>
-          <span class="label">Start time</span>
-          <div class="chips" id="times" role="group" aria-label="Start time">
-            <button class="chip" type="button" data-t="20:00" aria-pressed="false">20:00</button>
-            <button class="chip" type="button" data-t="21:00" aria-pressed="true">21:00</button>
-            <button class="chip" type="button" data-t="21:30" aria-pressed="false">21:30</button>
-            <button class="chip" type="button" data-t="22:00" aria-pressed="false">22:00</button>
-          </div>
-        </div>
-        <div>
-          <span class="label">Playing</span>
-          <div class="chips" id="acts" role="group" aria-label="Activity">
-            <button class="chip" type="button" data-a="Helldivers 2" aria-pressed="true">Helldivers 2</button>
-            <button class="chip" type="button" data-a="Movie night" aria-pressed="false">Movie night</button>
-            <button class="chip" type="button" data-a="Just chatting" aria-pressed="false">Just chatting</button>
-          </div>
-        </div>
-      </div>
-      <div class="session">
-        <div class="top">
-          <span class="when" id="demoWhen">Tonight 21:00</span>
-          <span class="sample">Sample friends</span>
-        </div>
-        <p class="what" id="demoWhat">Helldivers 2 · called by you</p>
-        <div class="people" id="demoPeople"></div>
-        <div class="outcome" id="demoOut" aria-live="polite"></div>
-      </div>
-    </div>
-  </section>
-
-  <section class="block band" id="catchup" style="border-bottom:0">
-    <div class="wrap catch">
-      <div class="block-head" style="margin:0">
-        <span class="label">Catch-up · Pro</span>
-        <h2>Missed the day? Read five lines.</h2>
-        <p class="lede">Open a server after work and Tonight tells you what happened, who's planning what, and anything that mentions you. Every point links back to the original message.</p>
-      </div>
-      <div class="feed">
-        <div class="hd">
-          <span class="label">#general · since 09:12</span>
-          <div class="toggle" role="tablist" aria-label="View">
-            <button type="button" role="tab" id="tabRaw" aria-selected="false">412 messages</button>
-            <button type="button" role="tab" id="tabSum" aria-selected="true">Catch-up</button>
-          </div>
-        </div>
-        <div class="msgs" id="raw" hidden>
-          <div class="msg"><b>Marcus</b><span>anyone on later</span></div>
-          <div class="msg"><b>Priya</b><span>maybe, depends on work</span></div>
-          <div class="msg"><b>Sam</b><span>lol did you see the patch notes</span></div>
-          <div class="msg"><b>Jordan</b><span>which ones</span></div>
-          <div class="msg"><b>Sam</b><span>the railgun ones. they nerfed it AGAIN</span></div>
-          <div class="msg"><b>Marcus</b><span>no way</span></div>
-          <div class="msg"><b>Priya</b><span>ok I can do 9 if we're quick</span></div>
-          <div class="msg"><b>Jordan</b><span>who's got the drive link for the holiday pics</span></div>
-          <div class="msg"><b>Sam</b><span>@you you still owe me £12 for pizza btw</span></div>
-          <div class="msg"><b>Marcus</b><span>9 works</span></div>
-          <div class="msg"><b>Jordan</b><span>might be late</span></div>
-        </div>
-        <ul class="summary" id="sum">
-          <li><span>Helldivers at 21:00. Sam, Priya and Marcus are in, Jordan might be late.<span class="src">14 messages · 16:02–18:40</span></span></li>
-          <li><span>Sam says you owe £12 for pizza.<span class="src">Mentions you · 12:31</span></span></li>
-          <li><span>The railgun got nerfed in today's patch. Mostly complaining.<span class="src">96 messages</span></span></li>
-          <li><span>Jordan is asking for the holiday photo link.<span class="src">Unanswered · 15:10</span></span></li>
-        </ul>
-      </div>
-    </div>
-  </section>
-
-  <section class="block">
-    <div class="wrap">
-      <div class="block-head">
-        <span class="label">Hangout rooms</span>
-        <h2>See who's around before you ask.</h2>
-        <p class="lede">Rooms stay open like a sofa you can drop onto. Status shows what people are actually doing, so you know if it's a good time.</p>
-      </div>
-      <div class="rooms">
-        <div class="room">
-          <div class="rh"><h3>The sofa</h3><span class="label"><span class="dot"></span>3 here</span></div>
-          <div class="row"><span class="av" style="background:#FFB547">S</span>Sam <span>watching F1</span></div>
-          <div class="row"><span class="av" style="background:#6FD8A4">P</span>Priya <span>cooking, on mic</span></div>
-          <div class="row"><span class="av" style="background:#7FC3FF">M</span>Marcus <span>browsing</span></div>
-        </div>
-        <div class="room">
-          <div class="rh"><h3>Desk club</h3><span class="label"><span class="dot"></span>2 here</span></div>
-          <div class="row"><span class="av" style="background:#B9A6FF">J</span>Jordan <span>working, muted</span></div>
-          <div class="row"><span class="av" style="background:#FF8FA3">A</span>Aisha <span>revising, 25 min left</span></div>
-        </div>
-        <div class="room">
-          <div class="rh"><h3>Squad</h3><span class="label" style="color:var(--muted)">Opens 21:00</span></div>
-          <div class="row"><span class="av" style="background:#FFB547">S</span>Sam <span>in</span></div>
-          <div class="row"><span class="av" style="background:#6FD8A4">P</span>Priya <span>in</span></div>
-          <div class="row"><span class="av" style="background:#7FC3FF">M</span>Marcus <span>in</span></div>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <section class="block band" style="border-bottom:0">
-    <div class="wrap bot">
-      <div class="block-head" style="margin:0">
-        <span class="label">Works with Discord</span>
-        <h2>Keep your server. Add the plans.</h2>
-        <p class="lede">You don't have to move anyone. Add the Tonight bot to your Discord server and start planning with one command. Switch to the full app when your group is ready.</p>
-      </div>
-      <div class="term" aria-label="Example Discord command">
-        <div><span class="c">/tonight</span> 9pm helldivers</div>
-        <div class="m">─────────────────────────</div>
-        <div>Tonight · 21:00 · Helldivers</div>
-        <div class="m">[ In ]  [ Maybe ]  [ Out ]</div>
-        <div class="m">─────────────────────────</div>
-        <div>3 in · 1 maybe</div>
-        <div class="m">Voice opens in #squad at 21:00</div>
-      </div>
-    </div>
-  </section>
-
-  <section class="block" id="pricing">
-    <div class="wrap">
-      <div class="block-head">
-        <span class="label">Pricing</span>
-        <h2>Free to plan. Pay for the extras.</h2>
+    <section id="pro">
+      <div class="sh">
+        <span class="k">Pricing</span>
+        <h2>Free to hang out. Pay for the extras.</h2>
       </div>
       <div class="plans">
         <div class="plan">
-          <span class="label">Free</span>
-          <div class="price">£0</div>
-          <p class="who">For any friend group.</p>
+          <div class="nm">Free</div>
+          <div class="pr">£0</div>
           <ul>
-            <li>Unlimited plans and RSVPs</li>
+            <li>Unlimited servers and plans</li>
             <li>Auto-opening voice rooms</li>
-            <li>Hangout rooms for up to 10</li>
+            <li>720p screen share</li>
             <li>Discord bot</li>
           </ul>
+          <a class="big" href="#get">Download</a>
         </div>
-        <div class="plan featured">
-          <span class="label" style="color:var(--accent)">Pro</span>
-          <div class="price">£4 <small>/ month</small></div>
-          <p class="who">For you, across every server.</p>
+        <div class="plan hl">
+          <div class="nm">Pro <span class="pop">Popular</span></div>
+          <div class="pr">£4 <small>/ month</small></div>
           <ul>
-            <li>Catch-up summaries</li>
+            <li>Catch-up in every server</li>
             <li>1080p 60fps screen share</li>
             <li>500 MB uploads</li>
-            <li>Custom profile and room themes</li>
+            <li>Custom profile, themes and sounds</li>
           </ul>
+          <a class="big" href="#get" style="background:var(--fg);color:var(--bg);border-color:var(--fg)">Get Pro</a>
         </div>
         <div class="plan">
-          <span class="label">Server Boost</span>
-          <div class="price">£12 <small>/ month</small></div>
-          <p class="who">For community owners.</p>
+          <div class="nm">Server Boost</div>
+          <div class="pr">£12 <small>/ month</small></div>
           <ul>
             <li>Catch-up for every member</li>
-            <li>AI moderation tuned to your rules</li>
-            <li>Event analytics and attendance</li>
+            <li>AI moderation with your rules</li>
+            <li>Session and attendance stats</li>
             <li>Paid member tiers (5% fee)</li>
           </ul>
+          <a class="big" href="#get">Boost a server</a>
         </div>
       </div>
-    </div>
-  </section>
+    </section>
 
-  <section class="block" style="padding-top:0">
-    <div class="wrap">
-      <div class="block-head"><span class="label">Questions</span></div>
-      <div class="faq">
-        <details><summary>Do my friends need to leave Discord?</summary><p>No. Start with the Discord bot. It handles plans and RSVPs inside your existing server. The full app is there when you want hangout rooms and catch-up.</p></details>
-        <details><summary>Is it only for gaming?</summary><p>No. People use it for movie nights, study sessions, five-a-side and anything else where the hard part is getting everyone there at the same time.</p></details>
-        <details><summary>How does catch-up handle my messages?</summary><p>Summaries are made only for servers you're in, only from messages you can already see, and they aren't used to train models. Server owners can turn it off.</p></details>
-        <details><summary>What happens if only one person says yes?</summary><p>You choose a minimum. If not enough people are in 15 minutes before, Tonight asks whether to keep it, move it or call it off.</p></details>
-        <details><summary>When does it launch?</summary><p>The Discord bot opens to the waitlist first, followed by the desktop and mobile apps.</p></details>
+    <section id="get">
+      <div class="sh">
+        <span class="k">Download</span>
+        <h2>Get Tonight.</h2>
+        <p>Apps open to the waitlist first. Join and we'll send your invite and download link.</p>
       </div>
-    </div>
-  </section>
-
-  <section class="block join" id="join">
-    <div class="wrap">
-      <span class="label">Early access</span>
-      <h2>See you<br>tonight.</h2>
-      <form class="form" id="form" novalidate>
-        <label class="label" for="email" style="position:absolute;left:-9999px">Email</label>
-        <input id="email" name="email" type="email" placeholder="you@email.com" autocomplete="email" required>
-        <button class="btn primary" type="submit">Join the waitlist</button>
-      </form>
-      <p class="form-note" id="note" aria-live="polite">First 1,000 people get Pro free for 3 months.</p>
-    </div>
-  </section>
-</main>
+      <div class="narrow">
+        <div class="dl">
+          <a class="big" href="#wl">Windows<small>x64 · arm64</small></a>
+          <a class="big" href="#wl">macOS<small>Apple silicon</small></a>
+          <a class="big" href="#wl">iPhone<small>iOS 17+</small></a>
+          <a class="big" href="#wl">Android<small>Android 10+</small></a>
+        </div>
+        <form class="wl" id="wl" novalidate>
+          <label for="email" style="position:absolute;left:-9999px">Email</label>
+          <input id="email" type="email" placeholder="you@email.com" autocomplete="email">
+          <button type="submit">Join waitlist</button>
+        </form>
+        <p class="note" id="note" aria-live="polite">First 1,000 people get Pro free for 3 months.</p>
+      </div>
+    </section>
+  </main>
+</div>
 
 <footer>
-  <div class="wrap label">
-    <span>Tonight © 2026</span>
-    <span>Plans that turn into sessions</span>
+  <div class="page">
+    <span>© 2026 Tonight</span>
+    <span class="fl"><a href="#features">About</a><a href="#privacy">Privacy</a><a href="#privacy">Terms</a><a href="#get">Status</a></span>
   </div>
 </footer>
 
 <script>
 (function () {
   const pad = n => String(n).padStart(2, "0");
-  const days = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+  const colors = { Sam: "#FBBF24", Priya: "#4ADE80", Marcus: "#60A5FA", Jordan: "#A78BFA", Aisha: "#F472B6", You: "#FAFAFA" };
+  const feed = document.getElementById("feed");
+  const now = () => { const d = new Date(); return pad(d.getHours()) + ":" + pad(d.getMinutes()); };
 
-  // Live clock + countdown to the next 21:00
+  // Countdown to the next 21:00 session
   function tick() {
-    const now = new Date();
-    document.getElementById("now").textContent = pad(now.getHours()) + ":" + pad(now.getMinutes());
-    const target = new Date(now); target.setHours(21, 0, 0, 0);
-    const end = new Date(now); end.setHours(23, 30, 0, 0);
-    const cd = document.getElementById("countdown");
-    if (now >= target && now < end) {
-      cd.textContent = "live now · 3 in voice";
-      document.getElementById("heroWhen").textContent = "Tonight 21:00";
+    const n = new Date(), t = new Date(n); t.setHours(21, 0, 0, 0);
+    const end = new Date(n); end.setHours(23, 30, 0, 0);
+    const cd = document.getElementById("cd"), jb = document.getElementById("joinBtn");
+    if (n >= t && n < end) { cd.textContent = "Live now"; jb.classList.add("live"); return; }
+    if (n >= end) t.setDate(t.getDate() + 1);
+    const s = Math.floor((t - n) / 1000);
+    cd.textContent = Math.floor(s / 3600) + "h " + pad(Math.floor(s % 3600 / 60)) + "m";
+  }
+  tick(); setInterval(tick, 15000);
+
+  // Plan card state
+  let rsvp = { Sam: "in", Priya: "in", Marcus: "in", Jordan: "maybe", You: null };
+  function planCard(title, time) {
+    const card = document.createElement("div");
+    card.className = "plancard";
+    card.innerHTML = '<div class="pt"><b></b><span></span></div><div class="ppl"></div>' +
+      '<div class="rsvp"><button type="button" data-v="in">In</button><button type="button" data-v="maybe">Maybe</button><button type="button" data-v="out">Out</button></div>';
+    card.querySelector(".pt b").textContent = title;
+    card.querySelector(".pt span").textContent = "Tonight " + time;
+    const ppl = card.querySelector(".ppl");
+    const draw = () => {
+      const ins = Object.keys(rsvp).filter(k => rsvp[k] === "in");
+      const maybes = Object.keys(rsvp).filter(k => rsvp[k] === "maybe");
+      ppl.textContent = ins.length + " in: " + ins.join(", ") + (maybes.length ? "  ·  maybe: " + maybes.join(", ") : "") + "  ·  room opens at " + time;
+      card.querySelectorAll(".rsvp button").forEach(b => b.setAttribute("aria-pressed", String(rsvp.You === b.dataset.v)));
+    };
+    card.querySelector(".rsvp").addEventListener("click", e => {
+      const b = e.target.closest("button"); if (!b) return;
+      rsvp.You = rsvp.You === b.dataset.v ? null : b.dataset.v; draw();
+    });
+    draw();
+    return card;
+  }
+
+  function addMsg(who, text, time, extra) {
+    const m = document.createElement("div");
+    m.className = "msg";
+    m.innerHTML = '<span class="av"></span><div><div class="who"><b></b><time></time></div><p></p></div>';
+    const av = m.querySelector(".av");
+    av.textContent = who === "Tonight" ? "☾" : who[0];
+    av.style.background = who === "Tonight" ? "#27272A" : (colors[who] || "#71717A");
+    if (who === "Tonight") av.style.color = "#FAFAFA";
+    m.querySelector("b").textContent = who;
+    m.querySelector("time").textContent = time;
+    const p = m.querySelector("p");
+    if (text) p.textContent = text; else p.remove();
+    if (extra) m.lastElementChild.appendChild(extra);
+    feed.appendChild(m);
+    feed.scrollTop = feed.scrollHeight;
+  }
+
+  const channels = {
+    squad: { sub: "· plans and sessions", msgs: [
+      ["Marcus", "anyone on later", "17:42"],
+      ["Priya", "I can do 9 if we're quick", "17:50"],
+      ["Tonight", null, "17:51", () => planCard("Helldivers 2", "21:00")],
+      ["Sam", "in. bringing the railgun even though they nerfed it", "18:03"],
+      ["Jordan", "might be late, will tap in when I'm home", "18:20"]
+    ]},
+    general: { sub: "· anything goes", msgs: [
+      ["Jordan", "who's got the link for the holiday pics", "15:10"],
+      ["Sam", "@You you still owe me £12 for pizza btw", "12:31"],
+      ["Priya", "lol pay the man", "12:33"]
+    ]},
+    clips: { sub: "· best bits from voice", msgs: [
+      ["Tonight", "Weekly recap: 4 clips from Friday's session. Most replayed: Marcus falling off the map (38 plays).", "09:00"],
+      ["Marcus", "this is slander", "09:14"]
+    ]},
+    football: { sub: "· sunday league", msgs: [
+      ["Aisha", "kick off 10:30 Sunday, need 2 more", "11:02"],
+      ["Sam", "I'm in if someone gives me a lift", "11:20"]
+    ]}
+  };
+  let current = "squad";
+
+  function load(c) {
+    current = c;
+    feed.innerHTML = "";
+    channels[c].msgs.forEach(([w, t, tm, ex]) => addMsg(w, t, tm, ex && ex()));
+    document.getElementById("chName").textContent = c;
+    document.getElementById("tabName").textContent = c;
+    document.getElementById("chSub").textContent = channels[c].sub;
+    document.getElementById("msg").placeholder = "Message #" + c + "  ·  try “/tonight 10pm movie”";
+    document.querySelectorAll("#channels .ch").forEach(b => b.classList.toggle("on", b.dataset.c === c));
+  }
+  document.getElementById("channels").addEventListener("click", e => {
+    const b = e.target.closest(".ch"); if (b) load(b.dataset.c);
+  });
+  load("squad");
+
+  // Composer: plain messages, or /tonight <time> <activity> to make a plan
+  document.getElementById("composer").addEventListener("submit", e => {
+    e.preventDefault();
+    const input = document.getElementById("msg");
+    const v = input.value.trim(); if (!v) return;
+    input.value = "";
+    const m = v.match(/^\/tonight\s+(\d{1,2})(?::(\d{2}))?\s*(am|pm)?\s*(.*)$/i);
+    if (m) {
+      let h = +m[1]; const min = m[2] || "00";
+      if ((m[3] || "").toLowerCase() === "pm" && h < 12) h += 12;
+      if (!m[3] && h < 12 && h >= 1 && h <= 11) h += 12;
+      const time = pad(h % 24) + ":" + min;
+      const act = m[4] ? m[4].replace(/\b\w/g, s => s.toUpperCase()) : "Hangout";
+      rsvp = { You: "in" };
+      addMsg("You", v, now());
+      addMsg("Tonight", null, now(), planCard(act, time));
+      setTimeout(() => { rsvp.Sam = "in"; addMsg("Sam", "in 👍", now()); }, 1200);
       return;
     }
-    if (now >= end) target.setDate(target.getDate() + 1);
-    const diff = Math.max(0, Math.floor((target - now) / 1000));
-    cd.textContent = "starts in " + pad(Math.floor(diff / 3600)) + ":" + pad(Math.floor(diff % 3600 / 60)) + ":" + pad(diff % 60);
-    const sameDay = target.toDateString() === now.toDateString();
-    document.getElementById("heroWhen").textContent = (sameDay ? "Tonight" : days[target.getDay()]) + " 21:00";
-  }
-  tick(); setInterval(tick, 1000);
+    addMsg("You", v, now());
+  });
 
-  // Planner demo
-  const friends = [
-    { n: "Sam", c: "#FFB547", s: "in" },
-    { n: "Priya", c: "#6FD8A4", s: "in" },
-    { n: "Jordan", c: "#B9A6FF", s: "maybe" },
-    { n: "Marcus", c: "#7FC3FF", s: "in" },
-    { n: "Aisha", c: "#FF8FA3", s: "out" }
-  ];
-  const order = ["in", "maybe", "out"];
-  const label = { in: "In", maybe: "Maybe", out: "Out" };
-  let time = "21:00", act = "Helldivers 2";
-  const peopleEl = document.getElementById("demoPeople");
+  // Catch-up button
+  document.getElementById("catchBtn").addEventListener("click", () => {
+    const box = document.createElement("div");
+    box.className = "catch";
+    box.innerHTML = '<span class="lbl">Catch-up · since 09:12 · 412 messages</span><ul>' +
+      '<li>Helldivers at 21:00. Sam, Priya and Marcus are in, Jordan might be late.</li>' +
+      '<li>Sam says you owe £12 for pizza (#general).</li>' +
+      '<li>Jordan wants the holiday photo link, still unanswered.</li>' +
+      '<li>Sunday league needs 2 more players at 10:30.</li></ul>';
+    addMsg("Tonight", null, now(), box);
+  });
 
-  function minus15(t) {
-    let [h, m] = t.split(":").map(Number);
-    m -= 15; if (m < 0) { m += 60; h -= 1; }
-    return pad(h) + ":" + pad(m);
-  }
-  function render() {
-    peopleEl.innerHTML = "";
-    friends.forEach((f, i) => {
-      const b = document.createElement("button");
-      b.type = "button"; b.className = "person";
-      b.setAttribute("aria-label", f.n + ": " + label[f.s] + ". Tap to change.");
-      b.innerHTML = '<span class="av" style="background:' + f.c + '">' + f.n[0] + '</span><span class="name">' + f.n + '</span><span class="pill ' + f.s + '">' + label[f.s] + '</span>';
-      b.addEventListener("click", () => { f.s = order[(order.indexOf(f.s) + 1) % 3]; render(); });
-      peopleEl.appendChild(b);
-    });
-    document.getElementById("demoWhen").textContent = "Tonight " + time;
-    document.getElementById("demoWhat").textContent = act + " · called by you";
-    const ins = friends.filter(f => f.s === "in");
-    const maybes = friends.filter(f => f.s === "maybe");
-    const out = document.getElementById("demoOut");
-    const total = ins.length + 1;
-    if (ins.length === 0) {
-      out.innerHTML = "Nobody's in yet. At <strong>" + minus15(time) + "</strong> Tonight will ask if you want to move it or call it off.";
-    } else {
-      let txt = "Room opens at <strong>" + time + "</strong> with <strong>" + total + " people</strong> (you + " + ins.map(f => f.n).join(", ") + ").";
-      if (maybes.length) txt += " " + maybes.map(f => f.n).join(" and ") + " get" + (maybes.length === 1 ? "s" : "") + " a nudge at " + minus15(time) + ".";
-      out.innerHTML = txt;
-    }
-  }
-  function chipGroup(id, attr, set) {
-    const g = document.getElementById(id);
-    g.addEventListener("click", e => {
-      const b = e.target.closest("button"); if (!b) return;
-      g.querySelectorAll("button").forEach(x => x.setAttribute("aria-pressed", String(x === b)));
-      set(b.dataset[attr]); render();
-    });
-  }
-  chipGroup("times", "t", v => time = v);
-  chipGroup("acts", "a", v => act = v);
-  render();
+  // Plan button drops a starter command in the composer
+  document.getElementById("planBtn").addEventListener("click", () => {
+    const i = document.getElementById("msg"); i.value = "/tonight 9pm "; i.focus();
+  });
 
-  // Catch-up toggle
-  const tabRaw = document.getElementById("tabRaw"), tabSum = document.getElementById("tabSum");
-  const raw = document.getElementById("raw"), sum = document.getElementById("sum");
-  function show(summary) {
-    tabSum.setAttribute("aria-selected", String(summary));
-    tabRaw.setAttribute("aria-selected", String(!summary));
-    sum.hidden = !summary; raw.hidden = summary;
-  }
-  tabRaw.addEventListener("click", () => show(false));
-  tabSum.addEventListener("click", () => show(true));
+  // Join voice
+  document.getElementById("joinBtn").addEventListener("click", e => {
+    const b = e.currentTarget;
+    const joined = b.dataset.j === "1";
+    b.dataset.j = joined ? "0" : "1";
+    b.textContent = joined ? "Join voice" : "Leave voice";
+    b.classList.toggle("live", !joined);
+  });
 
   // Waitlist (no backend yet)
-  document.getElementById("form").addEventListener("submit", e => {
+  document.getElementById("wl").addEventListener("submit", e => {
     e.preventDefault();
-    const input = document.getElementById("email");
-    const note = document.getElementById("note");
-    const v = input.value.trim();
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)) {
-      note.className = "form-note";
-      note.textContent = "That email doesn't look right. Check it and try again.";
-      input.focus(); return;
-    }
-    note.className = "form-note ok";
-    note.textContent = "You're on the list. We'll email " + v + " when your invite is ready.";
-    input.value = "";
+    const i = document.getElementById("email"), n = document.getElementById("note");
+    const v = i.value.trim();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)) { n.className = "note"; n.textContent = "That email doesn't look right. Check it and try again."; i.focus(); return; }
+    n.className = "note ok"; n.textContent = "You're on the list. We'll email " + v + " when your invite is ready."; i.value = "";
   });
 })();
 </script>
